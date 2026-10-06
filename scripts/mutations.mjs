@@ -90,7 +90,10 @@ const MUTATIONS = [
     evidence: 'Successful forgery with the correct received modification',
     file: 'src/wep/crc32.ts',
     anchor: '  return (crc32(mask) ^ crc32(new Uint8Array(mask.length))) >>> 0;',
-    replacement: '  return 0;',
+    // `void mask` keeps the parameter used. A bare `return 0;` leaves it unused,
+    // noUnusedParameters fails the typecheck, and DOES NOT BUILD is never a
+    // kill — which is exactly what this runner reported before the fix.
+    replacement: '  void mask;\n  return 0;',
     owner: {
       runner: 'vitest',
       name: 'that same change WITH the correct repair is accepted AND changes the plaintext',
