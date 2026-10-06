@@ -136,7 +136,10 @@ const MUTATIONS = [
     evidence: 'Independent plaintext-XOR equality',
     file: 'src/ui/panel3Collision.ts',
     anchor: '    const cipherXor = xor(ca, cb);',
-    replacement: '    const cipherXor = xor(ca, ca);',
+    // Corrupt one byte of the DISPLAY rather than dropping an operand: dropping
+    // `cb` leaves it unused, `tsc --noEmit` fails on noUnusedLocals, and a
+    // mutation that does not compile is never a kill.
+    replacement: '    const cipherXor = xor(ca, cb);\n    cipherXor[0] ^= 0xff;',
     owner: {
       runner: 'playwright',
       project: 'claims',
@@ -214,9 +217,19 @@ function hashSummary(h) {
     .join(' ');
 }
 
+/**
+ * Build exactly the way CI and Playwright's `webServer` do: `npm run build` is
+ * `tsc --noEmit && vite build`.
+ *
+ * Calling `vite build` alone here was a real defect in this runner. Vite strips
+ * types without checking them, so a mutation that breaks the TYPECHECK built
+ * "successfully", the hash moved, and then the Playwright webServer — which
+ * does run `npm run build` — failed to start. The runner reported
+ * "build SUCCEEDED" followed by an INCONCLUSIVE red run, which is a confusing
+ * way to say DOES NOT BUILD. Same command here, same verdict there.
+ */
 function build() {
-  const r = sh('npx vite build');
-  return r;
+  return sh('npm run build');
 }
 
 function runOwner(owner) {
@@ -224,13 +237,41 @@ function runOwner(owner) {
     // -t matches the test name; the exit code is the signal.
     return sh(`npx vitest run -t ${JSON.stringify(owner.name)}`);
   }
-  // Kill any stray preview, then run with retries disabled and CI=1 so no
-  // already-listening server can answer for the mutated build.
+  // Kill any stray preview, then WAIT FOR THE PORT TO ACTUALLY FREE before
+  // handing it to Playwright. With CI=1 the config does not reuse an existing
+  // server and --strictPort refuses to move, so a socket still in TIME_WAIT
+  // from the previous mutation makes the webServer fail to start — which this
+  // runner classifies INCONCLUSIVE rather than counting as a kill. Waiting is
+  // the fix; counting it would have been the bug.
   sh('pkill -f "vite preview" || true');
+  waitForPortFree(PORT);
   return sh(
     `npx playwright test --project=${owner.project} --retries=0 -g ${JSON.stringify(owner.name)}`,
     { env: { CI: '1' } }
   );
+}
+
+/** This lab's pinned Playwright port. */
+const PORT = 4732;
+
+/**
+ * Block until nothing holds `port`, or give up loudly.
+ *
+ * A brief wait here is not cosmetic: it is the difference between a mutation
+ * check that measured something and one whose server never came up.
+ */
+function waitForPortFree(port, timeoutMs = 60_000) {
+  const started = Date.now();
+  for (;;) {
+    const held = sh(`lsof -nP -iTCP:${port} -sTCP:LISTEN -t || true`).out.trim();
+    if (!held) return true;
+    if (Date.now() - started > timeoutMs) {
+      console.log(`     (warning: port ${port} still held by pid ${held} after ${timeoutMs}ms)`);
+      return false;
+    }
+    sh(`kill ${held.split('\n').join(' ')} || true`);
+    execFileSync('sleep', ['2'], { cwd: ROOT });
+  }
 }
 
 function diffOf(file) {
