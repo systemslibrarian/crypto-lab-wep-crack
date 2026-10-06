@@ -173,6 +173,10 @@ export function renderPanel1(host: HTMLElement): void {
   });
 
   rebuild();
+  // Draw the arrival state. Without this the permutation grid mounts EMPTY and
+  // the panel reads as a blank region -- which an accessibility scan reports as
+  // perfectly accessible, so the gate asserts the cell count at 256.
+  sync();
 
   host.append(
     card([
