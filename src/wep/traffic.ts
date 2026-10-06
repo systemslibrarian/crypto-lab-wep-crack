@@ -75,11 +75,65 @@ export function buildArpRequestPayload(seq: number, rand: (n: number) => Uint8Ar
   return concatBytes(ARP_REQUEST_KNOWN_PREFIX, tail);
 }
 
+/**
+ * A second, readable profile, for the keystream-reuse panel ONLY.
+ *
+ * Panel 3's lesson is that C1 XOR C2 = P1 XOR P2 and that a crib turns that
+ * relationship into bytes. Over binary ARP payloads that is true but illegible:
+ * the derived bytes are correct and render as dots. So panel 3 generates short
+ * readable messages instead, and says on the page that it is doing so.
+ *
+ * This profile is NOT used by the PTW panel and supplies no known plaintext to
+ * any attack. Panel 3's crib is a stated ASSUMPTION the learner supplies, which
+ * is the honest shape regardless of what the bytes say.
+ */
+export const CHATTER_PROFILE_ID = 'readable-chatter';
+
+export const CHATTER_PROFILE_DESCRIPTION =
+  'short readable messages of a fixed length, so a crib drag is legible. This profile ' +
+  'is for the keystream-reuse panel only and feeds no attack.';
+
+export const CHATTER_LINES = [
+  'status ok, battery at 84 percent  ',
+  'door sensor 3 reports closed now  ',
+  'temp 21.4C humidity 48 percent ok ',
+  'firmware 2.1.7 check-in completed ',
+  'motion detected in the north hall ',
+  'gate opened by badge 0x41c9 today ',
+  'valve 2 closed, pressure nominal  ',
+  'link quality 71, retries 3, ok    ',
+];
+
+/**
+ * The crib candidates this profile DISCLOSES.
+ *
+ * Panel 3 offers these as selectable cribs because the brief asks for an
+ * explicitly disclosed crib rather than a magic guess. Disclosing the possible
+ * openings is realistic - a protocol's fixed phrases are usually public - and it
+ * keeps the candidate bytes an ASSUMPTION rather than a lookup: which line a
+ * given packet carries is still unknown, so a selected crib can be wrong, and
+ * the panel shows it being wrong.
+ */
+export const DISCLOSED_CRIBS: readonly string[] = CHATTER_LINES.map((l) => l.trimEnd().slice(0, 12));
+
+/** Every line is the same length, so aligned XOR covers the whole payload. */
+export const CHATTER_PAYLOAD_LEN = CHATTER_LINES[0].length;
+
+export function buildChatterPayload(seq: number): Uint8Array {
+  const line = CHATTER_LINES[seq % CHATTER_LINES.length];
+  return new TextEncoder().encode(line);
+}
+
 export interface GeneratorOptions {
   readonly sharedKey: Uint8Array;
   readonly keyId?: number;
   /** Deterministic byte source — for LABELLED fixtures only. */
   readonly rand?: (n: number) => Uint8Array;
+  /**
+   * Which payload the session carries. Defaults to the ARP-request profile that
+   * panel 5's recovery depends on; panel 3 passes the readable one.
+   */
+  readonly payloadFor?: (seq: number, rand: (n: number) => Uint8Array) => Uint8Array;
 }
 
 /**
@@ -93,12 +147,14 @@ export class TrafficGenerator {
   private readonly sharedKey: Uint8Array;
   private readonly keyIdValue: number;
   private readonly rand: (n: number) => Uint8Array;
+  private readonly payloadFor: (seq: number, rand: (n: number) => Uint8Array) => Uint8Array;
   private produced = 0;
 
   constructor(opts: GeneratorOptions) {
     this.sharedKey = opts.sharedKey;
     this.keyIdValue = opts.keyId ?? 0;
     this.rand = opts.rand ?? randomBytes;
+    this.payloadFor = opts.payloadFor ?? buildArpRequestPayload;
     // Fail fast on a bad key rather than at the first packet.
     keyIdByte(this.keyIdValue);
   }
@@ -114,7 +170,7 @@ export class TrafficGenerator {
   /** One packet under a freshly drawn IV. */
   next(): GeneratedPacket {
     const iv = this.rand(3);
-    const plaintext = buildArpRequestPayload(this.produced, this.rand);
+    const plaintext = this.payloadFor(this.produced, this.rand);
     const body = wepEncrypt(plaintext, iv, this.sharedKey, this.keyIdValue);
     const packet: GeneratedPacket = {
       index: this.produced,

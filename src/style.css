@@ -1,0 +1,293 @@
+/* WEP Crack — theme and component styles.
+   Dark is the only theme (:root). The always-dark shared top bar owns its own
+   styles in index.html; every base element rule here is scoped to #app so it
+   never fights the bar.
+
+   Every colour below is an explicit hex measured against its real backdrop, not
+   a color-mix(). That is deliberate: axe files an unresolved color-mix() under
+   `incomplete` rather than judging it, so a palette built from mixes is a
+   palette the gate cannot see. The arithmetic ratios are in the comments. */
+
+:root {
+  color-scheme: dark;
+
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface-2: #1b2230;
+
+  /* --border is a DECORATIVE divider and is never a control boundary: at
+     1.37:1 against the surface it would fail WCAG 1.4.11's 3:1. Controls use
+     --control-border, which measures 4.06:1 on --bg, 3.71:1 on --surface and
+     3.42:1 on --surface-2. Reaching for --border on a button is the specific
+     mistake this pair exists to prevent. */
+  --border: #2b3440;
+  --control-border: #6b7584;
+
+  --text: #e6edf3; /* 16.02:1 on --bg */
+  --text-dim: #b3bdc8; /* 9.94:1 on --bg — muted by lightness, never opacity */
+
+  /* The brand accent, and two tokens DERIVED from it rather than copied from
+     another lab. The a11y gate measures contrast and not hue, so an accent in
+     one hue with an --accent-text in another passes the gate and looks broken. */
+  --accent: #a977f0; /* 5.93:1 on --bg */
+  --accent-text: #c9a5f8; /* the accent lightened — 9.21:1 on --bg */
+  --accent-ink: #190530; /* the accent darkened — 5.95:1 on an --accent fill */
+  --accent-tint: #2b283f; /* --accent at 14% over --surface */
+
+  /* State colours. Each has a border-weight value (>=3:1 on surface), a text
+     value (>=4.5:1 on its tint) and a tint to sit on. */
+  --ok: #3fb950; /* 6.81:1 on --surface */
+  --ok-text: #7ee29a; /* 8.71:1 on --ok-tint */
+  --ok-tint: #1c3128;
+  --ok-fill: #23662c; /* white ink 6.98:1 */
+
+  --bad: #f85149; /* 5.16:1 on --surface */
+  --bad-text: #ff8b84; /* 6.50:1 on --bad-tint */
+  --bad-tint: #362327;
+  --bad-fill: #882d28; /* white ink 8.56:1 */
+
+  --alarm: #e8a13c; /* 7.90:1 on --surface */
+  --alarm-text: #f4bd6a; /* 7.91:1 on --alarm-tint */
+  --alarm-tint: #332e26;
+  --alarm-fill: #805921; /* white ink 6.23:1 */
+
+  --neutral: #7d8da1; /* 5.10:1 on --surface */
+  --neutral-text: #9fb0c3; /* 6.44:1 on --neutral-tint */
+  --neutral-tint: #242b34;
+
+  --chip-ink: #ffffff;
+
+  --radius: 10px;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+html {
+  background-color: var(--bg); /* longhand — axe/WebKit miss the shorthand */
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  line-height: 1.55;
+}
+
+#app {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-inline: clamp(1rem, 3vw, 2rem);
+  padding-block: 0 3rem;
+}
+
+#app p { margin: 0 0 0.8rem; }
+#app h2 { font-size: clamp(1.15rem, 2.2vw, 1.45rem); margin: 0 0 0.5rem; line-height: 1.25; }
+#app h3 { font-size: 1.02rem; margin: 1.2rem 0 0.4rem; }
+#app h4 { font-size: 0.92rem; margin: 1rem 0 0.35rem; letter-spacing: 0.02em; }
+
+/* Inline links carry a persistent underline, not colour alone (WCAG 1.4.1). */
+#app a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; }
+#app a:hover { text-decoration-thickness: 2px; }
+
+#app :focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; border-radius: 4px; }
+
+/* ── Hero (standardized, master template 3.1) ─────────────────────────── */
+.cl-hero {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: clamp(1rem, 4vw, 3rem); flex-wrap: wrap;
+  margin: clamp(1rem, 3vw, 2rem) 0 1.5rem;
+}
+.cl-hero-main { flex: 1 1 22rem; min-width: min(100%, 20rem); }
+.cl-hero-title { margin: 0; font-size: clamp(1.6rem, 3.8vw, 2.7rem); font-weight: 700; line-height: 1.1; letter-spacing: 0.01em; }
+.cl-hero-sub { margin: 0.4rem 0 0; font-size: clamp(0.9rem, 1.6vw, 1.05rem); letter-spacing: 0.01em; color: var(--text-dim); }
+.cl-hero-desc { margin: 0.55rem 0 0; font-size: 1rem; line-height: 1.5; color: var(--text-dim); max-width: 60ch; }
+.cl-hero-why {
+  flex: 0 1 min(40%, 26rem); min-width: min(100%, 15rem);
+  border: 1px solid var(--control-border); border-radius: var(--radius);
+  padding: 0.85rem 1.05rem; background-color: var(--accent-tint);
+}
+.cl-hero-why-label { display: block; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em; color: var(--accent-text); }
+.cl-hero-why-text { margin: 0.35rem 0 0; font-size: 0.95rem; line-height: 1.5; }
+/* The mobile query resets .cl-hero-main too: `flex: 1 1 22rem` is a ROW basis,
+   and once flex-direction is column that 22rem is read as a HEIGHT, reserving
+   dead space under the title block at every width below 640px. */
+@media (max-width: 640px) {
+  .cl-hero { flex-direction: column; }
+  .cl-hero-main { flex-basis: auto; min-width: 0; }
+  .cl-hero-why { flex-basis: auto; width: 100%; }
+}
+
+/* ── Scope note ───────────────────────────────────────────────────────── */
+.scope-note {
+  border: 1px solid var(--control-border); border-left: 4px solid var(--alarm);
+  border-radius: var(--radius); background-color: var(--surface);
+  padding: 0.85rem 1.05rem; margin: 0 0 1.5rem;
+}
+.scope-note h2 { font-size: 0.72rem; letter-spacing: 0.14em; color: var(--alarm-text); margin-bottom: 0.4rem; }
+.scope-note p:last-child { margin-bottom: 0; }
+.scope-note ul { margin: 0.3rem 0 0.8rem; padding-left: 1.2rem; color: var(--text-dim); }
+.scope-note li { margin-bottom: 0.2rem; }
+
+/* ── Tabs ─────────────────────────────────────────────────────────────── */
+.tabs { border-bottom: 1px solid var(--border); margin-bottom: 1.25rem; }
+.tablist { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.tab-btn {
+  font: inherit; font-size: 0.85rem; font-weight: 600;
+  padding: 0.55rem 0.85rem; cursor: pointer;
+  color: var(--text-dim); background-color: var(--surface);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.tab-btn:hover { color: var(--text); background-color: var(--surface-2); border-color: var(--control-border); }
+.tab-btn[aria-selected="true"] {
+  color: var(--accent-text); background-color: var(--accent-tint);
+  border-color: var(--accent); border-bottom-color: var(--accent);
+}
+.tab-num { font-family: var(--mono); color: var(--neutral-text); margin-right: 0.4rem; }
+.tab-btn[aria-selected="true"] .tab-num { color: var(--accent-text); }
+
+.panel { padding: 0.25rem 0 0; }
+.panel > p:first-of-type { max-width: 72ch; }
+
+/* ── Cards ────────────────────────────────────────────────────────────── */
+.card {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background-color: var(--surface); padding: 1rem 1.1rem; margin: 0 0 1rem;
+}
+.card > h3:first-child, .card > h4:first-child { margin-top: 0; }
+.card-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+
+/* ── Controls ─────────────────────────────────────────────────────────── */
+.controls { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end; margin: 0 0 0.9rem; }
+.field { display: flex; flex-direction: column; gap: 0.25rem; }
+.field > label { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.03em; color: var(--text-dim); }
+.hint { font-size: 0.78rem; color: var(--text-dim); margin: 0.2rem 0 0; }
+
+.btn {
+  font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  padding: 0.5rem 0.9rem; border-radius: 8px;
+  /* --control-border, never --border: a 1px divider-coloured button edge
+     measures 1.37:1 against the surface and WCAG 1.4.11 needs 3:1. */
+  border: 1px solid var(--control-border);
+  background-color: var(--surface-2); color: var(--text);
+}
+.btn:hover { background-color: var(--surface); border-color: var(--accent); }
+.btn:disabled { color: var(--text-dim); cursor: not-allowed; border-color: var(--control-border); background-color: var(--surface); }
+.btn-primary { background-color: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+.btn-primary:hover { background-color: var(--accent-text); border-color: var(--accent-text); color: var(--accent-ink); }
+.btn-primary:disabled { background-color: var(--surface); color: var(--text-dim); border-color: var(--control-border); }
+.btn-danger { border-color: var(--bad); color: var(--bad-text); background-color: var(--bad-tint); }
+.btn-danger:hover { background-color: var(--bad-fill); color: var(--chip-ink); border-color: var(--bad); }
+
+input[type="text"], input[type="number"], select, textarea {
+  font: inherit; font-family: var(--mono); font-size: 0.85rem;
+  padding: 0.45rem 0.6rem; border-radius: 8px;
+  border: 1px solid var(--control-border);
+  background-color: var(--bg); color: var(--text);
+}
+textarea { line-height: 1.5; resize: vertical; }
+select { appearance: none; padding-right: 2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23b3bdc8' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 0.6rem center; background-size: 11px;
+}
+input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--bad); }
+
+/* ── Verdicts: icon + text + colour, never colour alone (WCAG 1.4.1) ──── */
+.verdict {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font-family: var(--mono); font-size: 0.85rem; font-weight: 700; letter-spacing: 0.06em;
+  padding: 0.4rem 0.75rem; border-radius: 8px; border: 1px solid transparent;
+}
+.verdict-icon { font-style: normal; }
+.verdict-pass { background-color: var(--ok-fill); color: var(--chip-ink); border-color: var(--ok); }
+.verdict-fail { background-color: var(--bad-fill); color: var(--chip-ink); border-color: var(--bad); }
+.verdict-alarm { background-color: var(--alarm-fill); color: var(--chip-ink); border-color: var(--alarm); }
+.verdict-neutral { background-color: var(--neutral-tint); color: var(--neutral-text); border-color: var(--neutral); }
+
+.note { border-radius: var(--radius); padding: 0.7rem 0.9rem; margin: 0.8rem 0; border: 1px solid transparent; }
+.note p:last-child { margin-bottom: 0; }
+.note-ok { background-color: var(--ok-tint); border-color: var(--ok); color: var(--ok-text); }
+.note-alarm { background-color: var(--alarm-tint); border-color: var(--alarm); color: var(--alarm-text); }
+.note-bad { background-color: var(--bad-tint); border-color: var(--bad); color: var(--bad-text); }
+.note-neutral { background-color: var(--neutral-tint); border-color: var(--neutral); color: var(--neutral-text); }
+.note-accent { background-color: var(--accent-tint); border-color: var(--accent); color: var(--accent-text); }
+.note strong { color: inherit; }
+
+/* The negative claim, wherever it appears. */
+.negative-claim {
+  font-weight: 700; border: 1px solid var(--alarm); border-left: 4px solid var(--alarm);
+  background-color: var(--alarm-tint); color: var(--alarm-text);
+  border-radius: var(--radius); padding: 0.7rem 0.9rem; margin: 0.8rem 0;
+}
+
+/* ── Byte displays ────────────────────────────────────────────────────── */
+.bytes {
+  font-family: var(--mono); font-size: 0.78rem; line-height: 1.7;
+  word-break: break-all; overflow-wrap: anywhere;
+  background-color: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 0.5rem 0.65rem; margin: 0.25rem 0 0.6rem;
+}
+.bytes-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; color: var(--text-dim); display: block; }
+.b-known { color: var(--accent-text); font-weight: 700; }
+.b-changed { color: var(--bad-text); font-weight: 700; }
+.b-icv { color: var(--alarm-text); font-weight: 700; }
+.b-clear { color: var(--ok-text); font-weight: 700; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 0.75rem; font-size: 0.75rem; color: var(--text-dim); margin: 0.2rem 0 0.7rem; }
+.legend span { display: inline-flex; align-items: center; gap: 0.3rem; }
+
+/* ── The RC4 permutation grid ─────────────────────────────────────────── */
+.perm-wrap { overflow-x: auto; }
+.perm {
+  display: grid; grid-template-columns: repeat(32, minmax(0, 1fr));
+  gap: 1px; min-width: 30rem; margin: 0.4rem 0 0.6rem;
+}
+.perm-cell {
+  font-family: var(--mono); font-size: 0.5rem; text-align: center;
+  padding: 1px 0; background-color: var(--surface-2); color: var(--text-dim);
+  border-radius: 2px;
+}
+.perm-cell.at-i { background-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.perm-cell.at-j { background-color: var(--alarm-fill); color: var(--chip-ink); font-weight: 700; }
+.perm-cell.at-out { background-color: var(--ok-fill); color: var(--chip-ink); font-weight: 700; }
+
+/* ── Tables ───────────────────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
+caption { text-align: left; font-size: 0.78rem; color: var(--text-dim); padding-bottom: 0.35rem; }
+th, td { text-align: left; padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--border); }
+th { font-size: 0.72rem; letter-spacing: 0.06em; color: var(--text-dim); font-weight: 700; }
+td.num, th.num { text-align: right; font-family: var(--mono); }
+tr.is-leader td { color: var(--accent-text); font-weight: 700; }
+
+.counts { display: grid; gap: 0.4rem 1.2rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); margin: 0.5rem 0; }
+.count-row { display: flex; justify-content: space-between; gap: 0.6rem; font-size: 0.82rem; border-bottom: 1px solid var(--border); padding-bottom: 0.2rem; }
+.count-row dt { color: var(--text-dim); }
+.count-row dd { margin: 0; font-family: var(--mono); font-weight: 700; }
+
+/* ── Progressive disclosure ───────────────────────────────────────────── */
+details { border: 1px solid var(--control-border); border-radius: var(--radius); padding: 0.5rem 0.75rem; margin: 0.8rem 0; background-color: var(--surface); }
+summary { cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--accent-text); }
+summary::marker { color: var(--accent-text); }
+details[open] > summary { margin-bottom: 0.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; }
+details .bytes:last-child, details p:last-child { margin-bottom: 0; }
+
+/* Scrollable regions get a keyboard route and a name (WCAG 2.1.1). */
+[role="region"][tabindex="0"]:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+
+progress { width: min(100%, 22rem); height: 0.7rem; }
+
+/* ── Scripture footer ─────────────────────────────────────────────────── */
+.scripture-footer { border-top: 1px solid var(--border); margin-top: 2.5rem; padding-top: 1rem; }
+.scripture-footer p { color: var(--text-dim); font-size: 0.85rem; font-style: italic; margin: 0; }
+
+/* ── Motion ───────────────────────────────────────────────────────────── */
+/* Motion is tied to an action (a KSA/PRGA step, a run completing) and nothing
+   idles. The reduced-motion block cancels the transition and leaves the END
+   state in place, rather than cancelling a reveal and stranding content at
+   opacity 0 — which is the failure the a11y gate asserts against directly. */
+.stepped { transition: background-color 0.18s ease, color 0.18s ease; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
