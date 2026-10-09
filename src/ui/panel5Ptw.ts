@@ -78,9 +78,35 @@ export function renderPanel5(host: HTMLElement): void {
   const resultBox = el('div', { id: 'ptw-result' });
   const votesBox = el('div', { id: 'ptw-votes' });
 
+  function stopWorker(): void {
+    worker?.terminate();
+    worker = null;
+  }
+
+  function restoreControls(): void {
+    btnRun.disabled = false;
+    btnCancel.disabled = true;
+    packetsSelect.disabled = false;
+    progressWrap.hidden = true;
+  }
+
+  function showError(error: unknown): void {
+    activeRunId = null;
+    stopWorker();
+    restoreControls();
+    clear(status);
+    status.append(
+      verdict('fail', 'EXPERIMENT ERROR', { 'data-claim': 'ptw-state' }),
+      el('p', { class: 'hint', text: 'The run could not finish. You can try again or start a new session.' }),
+      el('p', { class: 'hint', text: error instanceof Error ? error.message : String(error) }),
+    );
+  }
+
   /** Clear any previous verdict. A changed session must not keep a stale one. */
   function retireVerdict(): void {
     activeRunId = null;
+    stopWorker();
+    restoreControls();
     lastResult = null;
     revealed = false;
     clear(resultBox);
@@ -99,8 +125,18 @@ export function renderPanel5(host: HTMLElement): void {
 
   function ensureWorker(): Worker {
     if (worker) return worker;
-    worker = new Worker(new URL('../wep/attack/worker.ts', import.meta.url), { type: 'module' });
-    worker.addEventListener('message', (event: MessageEvent<WorkerOutbound>) => {
+    const createdWorker = new Worker(new URL('../wep/attack/worker.ts', import.meta.url), { type: 'module' });
+    worker = createdWorker;
+    createdWorker.addEventListener('error', (event) => {
+      if (worker !== createdWorker || !activeRunId) return;
+      event.preventDefault();
+      showError(new Error(event.message || 'The attack worker could not start.'));
+    });
+    createdWorker.addEventListener('messageerror', () => {
+      if (worker === createdWorker && activeRunId) showError(new Error('The attack result could not be read.'));
+    });
+    createdWorker.addEventListener('message', (event: MessageEvent<WorkerOutbound>) => {
+      if (worker !== createdWorker) return;
       const msg = event.data;
       // A late reply for a retired run must not restore a stale verdict.
       const runId = msg.kind === 'result' ? msg.result.runId : msg.progress.runId;
@@ -108,7 +144,8 @@ export function renderPanel5(host: HTMLElement): void {
 
       if (msg.kind === 'progress') {
         const pct = msg.progress.total > 0 ? Math.round((msg.progress.processed / msg.progress.total) * 100) : 0;
-        progressBar.value = pct;
+        if (msg.progress.phase === 'voting') progressBar.value = pct;
+        else progressBar.removeAttribute('value');
         const text = document.getElementById('ptw-progress-text');
         if (text) {
           text.textContent =
@@ -120,18 +157,19 @@ export function renderPanel5(host: HTMLElement): void {
       }
       finish(msg.result);
     });
-    return worker;
+    return createdWorker;
   }
 
   function finish(result: AttackResult): void {
     lastResult = result;
-    btnRun.disabled = false;
-    btnCancel.disabled = true;
-    progressWrap.hidden = true;
+    activeRunId = null;
+    stopWorker();
+    restoreControls();
     renderResult();
   }
 
-  function run(): void {
+  async function run(): Promise<void> {
+    if (activeRunId) return;
     runCounter++;
     const runId = `run-${runCounter}-${Date.now()}`;
     // Retire the old verdict BEFORE starting, then adopt the new run id.
@@ -139,45 +177,72 @@ export function renderPanel5(host: HTMLElement): void {
     activeRunId = runId;
 
     const packets = Number(packetsSelect.value);
-    const generated = controller.generate(packets + VALIDATION_RESERVE);
-
-    // THE BOUNDARY CROSSING. Only `.body` goes; `.plaintext` is dropped here.
-    const request = buildAttackRequest({
-      runId,
-      keyBits: 104,
-      profile: {
-        profileId: PROFILE_ID,
-        knownPrefix: ARP_REQUEST_KNOWN_PREFIX,
-        payloadLength: PROFILE_PAYLOAD_LEN,
-        keyId: 0,
-      },
-      budget: { maxPackets: packets, maxCandidates: MAX_CANDIDATES, maxMillis: MAX_MILLIS },
-      capturedBodies: generated.slice(0, packets).map((p) => p.body),
-      validationBodies: generated.slice(packets).map((p) => p.body),
-    });
-
     btnRun.disabled = true;
     btnCancel.disabled = false;
+    packetsSelect.disabled = true;
     progressWrap.hidden = false;
     progressBar.value = 0;
+    const progressText = progressWrap.querySelector('#ptw-progress-text')!;
+    progressText.textContent = 'Generating local traffic…';
     clear(status);
     status.append(
-      el('div', {}, [verdict('neutral', 'COLLECTING AND SEARCHING', { 'data-claim': 'ptw-state' })]),
-      el('p', {
-        class: 'hint',
-        text: `${packets.toLocaleString()} packets generated and handed over as captured bytes.`,
-      })
+      el('div', {}, [verdict('neutral', 'GENERATING LOCAL TRAFFIC', { 'data-claim': 'ptw-state' })]),
     );
 
-    const message: WorkerInbound = { kind: 'run', request };
-    ensureWorker().postMessage(message);
+    try {
+      // Yield between batches so progress paints and cancellation works during
+      // collection too. A reset retires the id before the next batch can run.
+      const runController = controller;
+      const generated: ReturnType<ExperimentController['generate']> = [];
+      const target = packets + VALIDATION_RESERVE;
+      while (generated.length < target) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        if (activeRunId !== runId) return;
+        generated.push(...runController.generate(Math.min(2000, target - generated.length)));
+        progressBar.value = Math.round(generated.length / target * 100);
+        progressText.textContent = `Generating local traffic — ${generated.length.toLocaleString()} of ${target.toLocaleString()} packets.`;
+      }
+
+      // THE BOUNDARY CROSSING. Only `.body` goes; `.plaintext` is dropped here.
+      const request = buildAttackRequest({
+        runId,
+        keyBits: 104,
+        profile: {
+          profileId: PROFILE_ID,
+          knownPrefix: ARP_REQUEST_KNOWN_PREFIX,
+          payloadLength: PROFILE_PAYLOAD_LEN,
+          keyId: 0,
+        },
+        budget: { maxPackets: packets, maxCandidates: MAX_CANDIDATES, maxMillis: MAX_MILLIS },
+        capturedBodies: generated.slice(0, packets).map((p) => p.body),
+        validationBodies: generated.slice(packets).map((p) => p.body),
+      });
+      clear(status);
+      status.append(
+        verdict('neutral', 'COLLECTING AND SEARCHING', { 'data-claim': 'ptw-state' }),
+        el('p', { class: 'hint', text: `${packets.toLocaleString()} packets generated and handed over as captured bytes.` }),
+      );
+      progressBar.removeAttribute('value');
+      progressText.textContent = 'Preparing captured bytes for the PTW search…';
+      const message: WorkerInbound = { kind: 'run', request };
+      ensureWorker().postMessage(message);
+    } catch (error) {
+      if (activeRunId === runId) showError(error);
+    }
   }
 
   function cancel(): void {
-    if (!activeRunId || !worker) return;
-    const message: WorkerInbound = { kind: 'cancel', runId: activeRunId };
-    worker.postMessage(message);
-    btnCancel.disabled = true;
+    if (!activeRunId) return;
+    activeRunId = null;
+    // A synchronous search cannot receive a queued cancel message until it
+    // returns. Termination actually interrupts it, rather than queuing intent.
+    stopWorker();
+    restoreControls();
+    clear(status);
+    status.append(
+      verdict('neutral', 'CANCELLED', { 'data-claim': 'ptw-state' }),
+      el('p', { class: 'hint', text: 'The run stopped. You can run the attack again whenever you’re ready.' }),
+    );
   }
 
   function renderResult(): void {

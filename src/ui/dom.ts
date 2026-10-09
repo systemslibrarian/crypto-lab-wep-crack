@@ -23,6 +23,20 @@ export function clear(node: HTMLElement): void {
   while (node.firstChild) node.removeChild(node.firstChild);
 }
 
+/** Preserve a learner's cursor when a redraw moves the existing controls. */
+export function updatePreservingFocus(root: HTMLElement, update: () => void): void {
+  const focused = document.activeElement instanceof HTMLElement && root.contains(document.activeElement)
+    ? document.activeElement : null;
+  const editable = focused instanceof HTMLInputElement || focused instanceof HTMLTextAreaElement ? focused : null;
+  const start = editable?.selectionStart ?? null;
+  const end = editable?.selectionEnd ?? null;
+  const direction = editable?.selectionDirection ?? undefined;
+  update();
+  if (!focused?.isConnected) return;
+  focused.focus({ preventScroll: true });
+  if (editable && start !== null && end !== null) editable.setSelectionRange(start, end, direction ?? undefined);
+}
+
 /** A labelled byte block. `spans` lets a panel colour named ranges. */
 export interface ByteSpan {
   readonly from: number;

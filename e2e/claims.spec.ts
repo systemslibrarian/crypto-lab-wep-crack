@@ -76,6 +76,7 @@ async function readBytes(page: Page, label: RegExp): Promise<number[]> {
 test.describe('panel 1 — the RC4 claims', () => {
   test('the vector verdict corresponds to bytes an independent RC4 agrees with', async ({ page }) => {
     await boot(page, 'dark');
+    await page.locator('summary').filter({ hasText: /published test-vector comparisons/ }).click();
     // The page claims a match. Recompute every row here, from a second RC4.
     const rows = page.locator('#rc4-vectors tbody tr');
     const count = await rows.count();
@@ -219,7 +220,7 @@ test.describe('panel 2 — the construction claims', () => {
     await page.locator('#wep-key').fill('010203');
     const reject = page.locator('[data-claim="wrapper-reject"]');
     await expect(reject).toContainText('REJECTED BY THE WEP WRAPPER');
-    await expect(page.locator('#wep-out')).toContainText('the restriction is WEP’s, not the cipher’s');
+    await expect(page.locator('#wep-input-error')).toContainText('the restriction is WEP’s, not the cipher’s');
   });
 
   test('changing an input retires the previous output', async ({ page }) => {
@@ -470,7 +471,7 @@ test.describe('panel 5 — the PTW recovery claims', () => {
     test.setTimeout(300_000);
     await page.selectOption('#ptw-packets', '60000');
     await page.getByRole('button', { name: /^Run the attack$/ }).click();
-    await expect(page.locator('[data-claim="ptw-state"]')).not.toContainText('COLLECTING', {
+    await expect(page.getByRole('button', { name: /^Run the attack$/ })).toBeEnabled({
       timeout: 240_000,
     });
 
@@ -500,7 +501,7 @@ test.describe('panel 5 — the PTW recovery claims', () => {
     test.setTimeout(300_000);
     await page.selectOption('#ptw-packets', '20000');
     await page.getByRole('button', { name: /^Run the attack$/ }).click();
-    await expect(page.locator('[data-claim="ptw-state"]')).not.toContainText('COLLECTING', {
+    await expect(page.getByRole('button', { name: /^Run the attack$/ })).toBeEnabled({
       timeout: 240_000,
     });
 
@@ -540,7 +541,7 @@ test.describe('panel 5 — the PTW recovery claims', () => {
     test.setTimeout(300_000);
     await page.selectOption('#ptw-packets', '20000');
     await page.getByRole('button', { name: /^Run the attack$/ }).click();
-    await expect(page.locator('[data-claim="ptw-state"]')).not.toContainText('COLLECTING', {
+    await expect(page.getByRole('button', { name: /^Run the attack$/ })).toBeEnabled({
       timeout: 240_000,
     });
     const votes = page.locator('#ptw-votes');
@@ -568,7 +569,7 @@ test.describe('panel 5 — the PTW recovery claims', () => {
     test.setTimeout(300_000);
     await page.selectOption('#ptw-packets', '20000');
     await page.getByRole('button', { name: /^Run the attack$/ }).click();
-    await expect(page.locator('[data-claim="ptw-state"]')).not.toContainText('COLLECTING', {
+    await expect(page.getByRole('button', { name: /^Run the attack$/ })).toBeEnabled({
       timeout: 240_000,
     });
     await expect(page.locator('#ptw-supplied')).toBeVisible();
@@ -583,7 +584,7 @@ test.describe('panel 5 — the PTW recovery claims', () => {
     test.setTimeout(300_000);
     await page.selectOption('#ptw-packets', '20000');
     await page.getByRole('button', { name: /^Run the attack$/ }).click();
-    await expect(page.locator('[data-claim="ptw-state"]')).not.toContainText('COLLECTING', {
+    await expect(page.getByRole('button', { name: /^Run the attack$/ })).toBeEnabled({
       timeout: 240_000,
     });
     await page.getByRole('button', { name: /New session key/ }).click();

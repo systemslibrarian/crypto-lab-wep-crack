@@ -9,10 +9,10 @@
  * silent drop, because a run that never answers looks exactly like one still
  * collecting.
  *
- * Cancellation: the panel posts `{kind:'cancel', runId}` and the run's progress
- * callback notices between batches. Every outbound message carries the run id
- * it belongs to, so a late reply for a retired run can be discarded by the
- * panel rather than restoring a stale verdict.
+ * The panel cancels by terminating this worker, since a synchronous search
+ * cannot handle queued messages until it returns. The cancellation hook below
+ * can honor a cancellation already received before a run starts. Every outbound
+ * message carries its run id, so a reply from a retired run is discarded.
  */
 
 import { assertCaptureOnly, type WorkerInbound, type WorkerOutbound } from './contract';

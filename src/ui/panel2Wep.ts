@@ -24,7 +24,7 @@ import {
   wepEncrypt,
   wepReceive,
 } from '../wep/wep';
-import { byteBlock, card, clear, details, el, field, note, verdict } from './dom';
+import { byteBlock, card, clear, details, el, field, note, statusRegion, verdict } from './dom';
 
 export function renderPanel2(host: HTMLElement): void {
   clear(host);
@@ -43,6 +43,9 @@ export function renderPanel2(host: HTMLElement): void {
 
   const newKeyBtn = el('button', { class: 'btn', type: 'button', text: 'New key + IV' });
   const out = el('div', { id: 'wep-out' });
+  const inputError = statusRegion('wep-input-error');
+  keyInput.setAttribute('aria-describedby', 'wep-input-error');
+  ivInput.setAttribute('aria-describedby', 'wep-input-error');
 
   function regenerate(): void {
     const bits = Number(keySizeSelect.value) as WepKeyBits;
@@ -53,15 +56,24 @@ export function renderPanel2(host: HTMLElement): void {
 
   function render(): void {
     clear(out);
+    clear(inputError);
+    keyInput.setAttribute('aria-invalid', 'false');
+    ivInput.setAttribute('aria-invalid', 'false');
     const bits = Number(keySizeSelect.value) as WepKeyBits;
     let sharedKey: Uint8Array;
     let iv: Uint8Array;
     try {
       sharedKey = fromHex(keyInput.value.trim());
-      iv = fromHex(ivInput.value.trim());
     } catch {
       keyInput.setAttribute('aria-invalid', 'true');
-      out.append(note('bad', [el('p', { text: 'Those are not hex bytes.' })]));
+      inputError.append(note('bad', [el('p', { text: 'Use complete hex bytes for the shared key, for example 0405060708.' })]));
+      return;
+    }
+    try {
+      iv = fromHex(ivInput.value.trim());
+    } catch {
+      ivInput.setAttribute('aria-invalid', 'true');
+      inputError.append(note('bad', [el('p', { text: 'Use exactly three complete hex bytes for the IV, for example 010203.' })]));
       return;
     }
 
@@ -69,7 +81,7 @@ export function renderPanel2(host: HTMLElement): void {
     const expected = sharedKeyBytesFor(bits);
     if (sharedKey.length !== expected) {
       keyInput.setAttribute('aria-invalid', 'true');
-      out.append(
+      inputError.append(
         note('bad', [
           verdict('fail', 'REJECTED BY THE WEP WRAPPER', { 'data-claim': 'wrapper-reject' }),
           el('p', {
@@ -84,7 +96,7 @@ export function renderPanel2(host: HTMLElement): void {
     }
     if (iv.length !== WEP_IV_LEN) {
       ivInput.setAttribute('aria-invalid', 'true');
-      out.append(note('bad', [el('p', { text: `A WEP IV is exactly ${WEP_IV_LEN} bytes.` })]));
+      inputError.append(note('bad', [el('p', { text: `A WEP IV is exactly ${WEP_IV_LEN} bytes (6 hex characters).` })]));
       return;
     }
     keyInput.setAttribute('aria-invalid', 'false');
@@ -184,9 +196,9 @@ export function renderPanel2(host: HTMLElement): void {
       note('neutral', [
         el('p', {
           text:
-            'Read that verdict narrowly. It says the bytes arrived as the sender computed ' +
-            'them, or that they did not. It is not a statement that the message is ' +
-            'authentic, and panel 4 is about why.',
+            'Read that verdict narrowly. The decrypted payload matches its accompanying ' +
+            'checksum. That does not establish who sent the message or whether it was ' +
+            'altered. Panel 4 shows why.',
         }),
       ]),
       el('p', {
@@ -234,7 +246,7 @@ export function renderPanel2(host: HTMLElement): void {
       field('IV (3 bytes, hex)', ivInput),
       field('Key ID', keyIdSelect),
       newKeyBtn,
-    ]), field('Message', msgInput), out]),
+    ]), field('Message', msgInput), inputError, out]),
     details('The serialisation details, and where each one comes from', [
       el('p', {}, [
         document.createTextNode(

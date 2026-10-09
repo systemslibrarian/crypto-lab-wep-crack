@@ -57,7 +57,7 @@
 
   --chip-ink: #ffffff;
 
-  --radius: 10px;
+  --radius: 14px;
   --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
@@ -83,7 +83,7 @@ body {
 }
 
 #app {
-  max-width: 1120px;
+  max-width: 1280px;
   margin: 0 auto;
   padding-inline: clamp(1rem, 3vw, 2rem);
   padding-block: 0 3rem;
@@ -99,91 +99,131 @@ body {
 #app a:hover { text-decoration-thickness: 2px; }
 
 #app :focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; border-radius: 4px; }
+#app:focus { outline: none; }
+#app .eyebrow { color: var(--accent-text); font: 600 0.7rem var(--mono); letter-spacing: 0.16em; margin: 0 0 0.8rem; }
 
-/* ── Hero (standardized, master template 3.1) ─────────────────────────── */
+/* ── Hero and protected-body diagram ────────────────────────────────── */
 .cl-hero {
-  display: flex; align-items: flex-start; justify-content: space-between;
-  gap: clamp(1rem, 4vw, 3rem); flex-wrap: wrap;
-  margin: clamp(1rem, 3vw, 2rem) 0 1.5rem;
+  display: grid; grid-template-columns: 1.1fr 1fr; align-items: center;
+  gap: clamp(1.5rem, 5vw, 4rem);
+  padding-block: clamp(2rem, 5vw, 4rem) 2.5rem;
 }
-.cl-hero-main { flex: 1 1 22rem; min-width: min(100%, 20rem); }
-.cl-hero-title { margin: 0; font-size: clamp(1.6rem, 3.8vw, 2.7rem); font-weight: 700; line-height: 1.1; letter-spacing: 0.01em; }
-.cl-hero-sub { margin: 0.4rem 0 0; font-size: clamp(0.9rem, 1.6vw, 1.05rem); letter-spacing: 0.01em; color: var(--text-dim); }
-.cl-hero-desc { margin: 0.55rem 0 0; font-size: 1rem; line-height: 1.5; color: var(--text-dim); max-width: 60ch; }
+.cl-hero-main { min-width: 0; }
+.cl-hero-title { margin: 0 0 0.7rem; font-size: clamp(3.25rem, 6.6vw, 5.3rem); font-weight: 750; line-height: 1; letter-spacing: -0.06em; }
+.cl-hero-title span { color: var(--accent-text); }
+.cl-hero-sub { font: 0.75rem/1.6 var(--mono); color: var(--text-dim); }
+#app .hero-statement { white-space: pre-line; font-size: clamp(1.5rem, 2.8vw, 2.2rem); line-height: 1.2; letter-spacing: -0.025em; font-weight: 600; margin-block: 1.6rem 1rem; }
+.cl-hero-desc { font-size: 1rem; line-height: 1.65; color: var(--text-dim); max-width: 48ch; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 0.65rem; margin-block: 1.5rem 0.8rem; }
+#app .hero-actions a { display: inline-flex; align-items: center; text-decoration: none; padding: 0.75rem 1rem; color: var(--text); }
+#app .hero-actions .btn-primary { color: var(--accent-ink); }
+#app .hero-meta { font-size: 0.75rem; line-height: 1.6; color: var(--text-dim); margin: 0; }
 .cl-hero-why {
-  flex: 0 1 min(40%, 26rem); min-width: min(100%, 15rem);
-  border: 1px solid var(--control-border); border-radius: var(--radius);
-  padding: 0.85rem 1.05rem; background-color: var(--accent-tint);
+  min-width: 0; border: 1px solid var(--border); border-top: 2px solid var(--accent);
+  border-radius: var(--radius); padding: clamp(1rem, 2.4vw, 1.75rem); background-color: var(--surface);
 }
 .cl-hero-why-label { display: block; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em; color: var(--accent-text); }
-.cl-hero-why-text { margin: 0.35rem 0 0; font-size: 0.95rem; line-height: 1.5; }
-/* The mobile query resets .cl-hero-main too: `flex: 1 1 22rem` is a ROW basis,
-   and once flex-direction is column that 22rem is read as a HEIGHT, reserving
-   dead space under the title block at every width below 640px. */
-/* The mobile query resets .cl-hero-main too, and it needs `width: 100%` as
-   well as `min-width: 0`. The hero sets `align-items: flex-start`, so once
-   `flex-direction` becomes column the items size to their own MAX-CONTENT in
-   the cross axis rather than stretching to the container: `.cl-hero-desc` wants
-   its full `max-width: 60ch` (~384px here), the title block grows to match, and
-   the page scrolls sideways at every width below that. The master template's
-   snippet gives `width: 100%` to `.cl-hero-why` but not to `.cl-hero-main`,
-   which is why a lab with a long hero description inherits a 1.4.10 reflow
-   failure from it. */
-@media (max-width: 640px) {
-  .cl-hero { flex-direction: column; }
-  .cl-hero-main { flex-basis: auto; min-width: 0; width: 100%; }
-  .cl-hero-why { flex-basis: auto; width: 100%; }
+.cl-hero-why-text { font-size: 0.85rem; line-height: 1.65; color: var(--text-dim); }
+#app .cl-hero-why-text { margin: 0.6rem 0 0; }
+.packet-heading { display: flex; justify-content: space-between; align-items: center; gap: 0.8rem; }
+.packet-tag { flex-shrink: 0; font: 0.65rem var(--mono); color: var(--text-dim); }
+.packet-diagram { display: grid; grid-template-columns: 0.75fr 0.85fr 1.8fr; margin-block: 1.25rem; gap: 5px; }
+.packet-part { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 0.65rem; padding: 1.1rem 0.7rem; background-color: var(--bg); border: 1px solid var(--control-border); border-radius: 6px; }
+.packet-part span { font: 0.55rem/1.5 var(--mono); letter-spacing: 0.03em; }
+.packet-part strong { font: 600 0.85rem var(--mono); }
+.packet-part small { font: 0.6rem/1.5 var(--mono); }
+.packet-public { background-color: var(--ok-tint); border-color: var(--ok); color: var(--ok-text); }
+.packet-id { background-color: var(--accent-tint); border-color: var(--accent); color: var(--accent-text); }
+.packet-encrypted { color: var(--text-dim); }
+.packet-encrypted strong { color: var(--text); }
+.failure-list { margin-block: 0.75rem 1.5rem; }
+.failure-row { display: grid; grid-template-columns: 1.6rem 1fr 1.3fr; gap: 0.55rem; align-items: baseline; padding-block: 0.7rem; border-bottom: 1px solid var(--border); font-size: 0.75rem; }
+.failure-num { font: 0.65rem var(--mono); color: var(--accent-text); }
+.failure-row strong { font-weight: 550; }
+.failure-effect { color: var(--text-dim); }
+/* Stack the explanation on narrow screens; both grid children can shrink. */
+@media (max-width: 760px) {
+  .cl-hero { grid-template-columns: 1fr; padding-bottom: 1.5rem; }
+  .cl-hero-why { width: 100%; }
 }
 
 /* ── Scope note ───────────────────────────────────────────────────────── */
 .scope-note {
   border: 1px solid var(--control-border); border-left: 4px solid var(--alarm);
   border-radius: var(--radius); background-color: var(--surface);
-  padding: 0.85rem 1.05rem; margin: 0 0 1.5rem;
+  padding: 0.85rem 1.05rem; margin: 2rem 0 0;
 }
-.scope-note h2 { font-size: 0.72rem; letter-spacing: 0.14em; color: var(--alarm-text); margin-bottom: 0.4rem; }
+.scope-note summary { color: var(--alarm-text); }
+.scope-note summary::marker { color: var(--alarm-text); }
 .scope-note p:last-child { margin-bottom: 0; }
 .scope-note ul { margin: 0.3rem 0 0.8rem; padding-left: 1.2rem; color: var(--text-dim); }
 .scope-note li { margin-bottom: 0.2rem; }
 
 /* ── Tabs ─────────────────────────────────────────────────────────────── */
-.tabs { border-bottom: 1px solid var(--border); margin-bottom: 1.25rem; }
-.tablist { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.lab-context { display: flex; gap: 0.7rem; align-items: baseline; padding-block: 1rem; border-block: 1px solid var(--border); color: var(--text-dim); font-size: 0.8rem; }
+.lab-context strong { color: var(--text); font-weight: 600; }
+.context-marker { color: var(--accent-text); font-size: 1rem; }
+.experiment { margin-top: 2.25rem; scroll-margin-top: 90px; }
+.experiment-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
+#app .experiment-heading .eyebrow { margin-bottom: 0.4rem; }
+#app .experiment-heading h2 { font-size: 1.8rem; letter-spacing: -0.035em; margin: 0; }
+.exhibit-position { font: 0.75rem var(--mono); color: var(--text-dim); white-space: nowrap; }
+.tabs { margin-bottom: 1.75rem; }
+.tablist { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.5rem; }
 .tab-btn {
-  font: inherit; font-size: 0.85rem; font-weight: 600;
-  padding: 0.55rem 0.85rem; cursor: pointer;
+  display: flex; align-items: flex-start; gap: 0.65rem; text-align: left;
+  font: inherit; font-size: 0.8rem; font-weight: 600;
+  padding: 0.85rem 0.75rem; cursor: pointer;
   color: var(--text-dim); background-color: var(--surface);
   border: 1px solid var(--control-border);
-  border-radius: var(--radius) var(--radius) 0 0;
+  border-radius: 10px;
 }
 .tab-btn:hover { color: var(--text); background-color: var(--surface-2); border-color: var(--control-border); }
 .tab-btn[aria-selected="true"] {
   color: var(--accent-text); background-color: var(--accent-tint);
   border-color: var(--accent); border-bottom-color: var(--accent);
 }
-.tab-num { font-family: var(--mono); color: var(--neutral-text); margin-right: 0.4rem; }
+.tab-num { font: 0.7rem/1.8 var(--mono); color: var(--text-dim); }
+.tab-copy { display: flex; flex-direction: column; gap: 0.25rem; }
+.tab-copy small { font-size: 0.65rem; font-weight: 400; color: var(--text-dim); }
 .tab-btn[aria-selected="true"] .tab-num { color: var(--accent-text); }
+.exhibit-navigation { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+
+@media (max-width: 900px) and (min-width: 641px) {
+  .tab-btn { flex-direction: column; gap: 0.25rem; }
+}
+@media (max-width: 640px) {
+  .tablist { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tab-btn:last-child { grid-column: 1 / -1; }
+  .exhibit-navigation .btn { flex: 1 1 100%; }
+  .experiment-heading { gap: 0.5rem; }
+  #app .experiment-heading h2 { font-size: 1.5rem; }
+  .exhibit-position { font-size: 0.65rem; }
+}
 
 .panel { padding: 0.25rem 0 0; }
+.panel > h2 { letter-spacing: -0.025em; }
 .panel > p:first-of-type { max-width: 72ch; }
 
 /* ── Cards ────────────────────────────────────────────────────────────── */
 .card {
   border: 1px solid var(--border); border-radius: var(--radius);
-  background-color: var(--surface); padding: 1rem 1.1rem; margin: 0 0 1rem;
+  background-color: var(--surface); padding: clamp(1rem, 2.5vw, 1.5rem); margin: 1.25rem 0;
 }
 .card > h3:first-child, .card > h4:first-child { margin-top: 0; }
+.card:has(.perm) { border-top: 2px solid var(--accent); }
 .card-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
 
 /* ── Controls ─────────────────────────────────────────────────────────── */
 .controls { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end; margin: 0 0 0.9rem; }
-.field { display: flex; flex-direction: column; gap: 0.25rem; }
+.field { display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; max-width: 100%; }
 .field > label { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.03em; color: var(--text-dim); }
 .hint { font-size: 0.78rem; color: var(--text-dim); margin: 0.2rem 0 0; }
 
 .btn {
   font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer;
-  padding: 0.5rem 0.9rem; border-radius: 8px;
+  padding: 0.6rem 0.9rem; min-height: 44px; border-radius: 8px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
   /* --control-border, never --border: a 1px divider-coloured button edge
      measures 1.37:1 against the surface and WCAG 1.4.11 needs 3:1. */
   border: 1px solid var(--control-border);
@@ -202,8 +242,14 @@ input[type="text"], input[type="number"], select, textarea {
   padding: 0.45rem 0.6rem; border-radius: 8px;
   border: 1px solid var(--control-border);
   background-color: var(--bg); color: var(--text);
+  max-width: 100%; min-height: 44px;
 }
-textarea { line-height: 1.5; resize: vertical; }
+textarea { line-height: 1.5; resize: vertical; width: 100%; }
+input[type="text"] { width: 18rem; }
+input[type="number"] { width: 8rem; }
+.field-error { color: var(--bad-text); font-size: 0.85rem; }
+input[type="range"] { width: 100%; accent-color: var(--accent); min-height: 28px; cursor: pointer; }
+.step-scrubber { margin: 1rem 0 0.7rem; }
 select { appearance: none; padding-right: 2rem;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23b3bdc8' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 0.6rem center; background-size: 11px;
@@ -214,7 +260,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .verdict {
   display: inline-flex; align-items: center; gap: 0.5rem;
   font-family: var(--mono); font-size: 0.85rem; font-weight: 700; letter-spacing: 0.06em;
-  padding: 0.4rem 0.75rem; border-radius: 8px; border: 1px solid transparent;
+  padding: 0.4rem 0.75rem; border-radius: 8px; border: 1px solid transparent; max-width: 100%;
 }
 .verdict-icon { font-style: normal; }
 .verdict-pass { background-color: var(--ok-fill); color: var(--chip-ink); border-color: var(--ok); }
@@ -258,22 +304,26 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .perm-wrap { overflow-x: auto; }
 .perm {
   display: grid; grid-template-columns: repeat(32, minmax(0, 1fr));
-  gap: 1px; min-width: 30rem; margin: 0.4rem 0 0.6rem;
+  gap: 3px; min-width: 36rem; margin: 0.7rem 0 1rem;
 }
 .perm-cell {
-  font-family: var(--mono); font-size: 0.5rem; text-align: center;
-  padding: 1px 0; background-color: var(--surface-2); color: var(--text-dim);
-  border-radius: 2px;
+  font-family: var(--mono); font-size: 0.68rem; text-align: center;
+  padding: 4px 0; background-color: var(--surface-2); color: var(--text-dim);
+  border-radius: 3px;
 }
 .perm-cell.at-i { background-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
 .perm-cell.at-j { background-color: var(--alarm-fill); color: var(--chip-ink); font-weight: 700; }
 .perm-cell.at-out { background-color: var(--ok-fill); color: var(--chip-ink); font-weight: 700; }
+@media (max-width: 640px) {
+  .perm { grid-template-columns: repeat(16, minmax(0, 1fr)); min-width: 0; gap: 2px; }
+  .perm-cell { font-size: 0.6rem; padding: 3px 0; }
+}
 
 /* ── Tables ───────────────────────────────────────────────────────────── */
-.table-wrap { overflow-x: auto; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; margin-top: 1rem; }
 table { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
 caption { text-align: left; font-size: 0.78rem; color: var(--text-dim); padding-bottom: 0.35rem; }
-th, td { text-align: left; padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--border); }
+th, td { text-align: left; padding: 0.6rem 0.5rem; border-bottom: 1px solid var(--border); }
 th { font-size: 0.72rem; letter-spacing: 0.06em; color: var(--text-dim); font-weight: 700; }
 td.num, th.num { text-align: right; font-family: var(--mono); }
 tr.is-leader td { color: var(--accent-text); font-weight: 700; }
@@ -293,7 +343,7 @@ details .bytes:last-child, details p:last-child { margin-bottom: 0; }
 /* Scrollable regions get a keyboard route and a name (WCAG 2.1.1). */
 [role="region"][tabindex="0"]:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
 
-progress { width: min(100%, 22rem); height: 0.7rem; }
+progress { width: 100%; height: 0.7rem; accent-color: var(--accent); }
 
 /* ── Scripture footer ─────────────────────────────────────────────────── */
 .scripture-footer { border-top: 1px solid var(--border); margin-top: 2.5rem; padding-top: 1rem; }

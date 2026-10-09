@@ -29,7 +29,7 @@ export default defineConfig({
     { name: 'a11y', testMatch: /a11y\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
     // Claims run in one engine: they assert what the page SAYS and what it
     // COMPUTED, neither of which varies by browser.
-    { name: 'claims', testMatch: /claims\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
+    { name: 'claims', testMatch: /(?:claims|experience)\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
   ],
   webServer: {
     // Build before serving: `vite preview` only serves whatever is already in

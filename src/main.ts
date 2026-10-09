@@ -23,47 +23,73 @@ interface PanelSpec {
   readonly id: string;
   readonly num: string;
   readonly tab: string;
+  readonly lesson: string;
   readonly render: (host: HTMLElement) => void;
 }
 
 const PANELS: readonly PanelSpec[] = [
-  { id: 'rc4', num: '1', tab: 'RC4 itself', render: renderPanel1 },
-  { id: 'wep', num: '2', tab: 'Wrap it in WEP', render: renderPanel2 },
-  { id: 'collision', num: '3', tab: 'Keystream reuse', render: renderPanel3 },
-  { id: 'forge', num: '4', tab: 'Forge a packet', render: renderPanel4 },
-  { id: 'ptw', num: '5', tab: 'Recover the key', render: renderPanel5 },
+  { id: 'rc4', num: '1', tab: 'RC4 itself', lesson: 'Inspect the cipher', render: renderPanel1 },
+  { id: 'wep', num: '2', tab: 'Wrap it in WEP', lesson: 'Build a protected body', render: renderPanel2 },
+  { id: 'collision', num: '3', tab: 'Keystream reuse', lesson: 'Find a repeated IV', render: renderPanel3 },
+  { id: 'forge', num: '4', tab: 'Forge a packet', lesson: 'Break authentication', render: renderPanel4 },
+  { id: 'ptw', num: '5', tab: 'Recover the key', lesson: 'Run a real PTW attack', render: renderPanel5 },
 ];
 
 function hero(): HTMLElement {
   return el('header', { class: 'cl-hero' }, [
     el('div', { class: 'cl-hero-main' }, [
-      el('h1', { class: 'cl-hero-title', text: 'WEP Crack' }),
+      el('p', { class: 'eyebrow', text: 'INTERACTIVE CRYPTOGRAPHY LAB' }),
+      el('h1', { class: 'cl-hero-title' }, ['WEP ', el('span', { text: 'Crack' })]),
       el('p', { class: 'cl-hero-sub', text: 'RC4 · WEP integrity failures · PTW key recovery' }),
+      el('p', { class: 'hero-statement', text: 'A working cipher.\nA broken system.' }),
       el('p', {
         class: 'cl-hero-desc',
         text:
-          'Step the real RC4 key schedule, wrap a message in a WEP protected body, watch ' +
-          'a repeated IV cancel the keystream, forge a packet the genuine integrity check ' +
-          'accepts, and run PTW until the shared key falls out.',
+          'See WEP come apart, one experiment at a time. Inspect real cipher state, ' +
+          'alter a message without the key, and try to recover a secret from public traffic.',
       }),
+      el('div', { class: 'hero-actions' }, [
+        el('a', { class: 'btn btn-primary', href: '#rc4', 'data-exhibit': 'rc4', text: 'Start the walkthrough →' }),
+        el('a', { class: 'btn', href: '#forge', 'data-exhibit': 'forge', text: 'See the forgery ↗' }),
+      ]),
+      el('p', { class: 'hero-meta', text: 'Five hands-on exhibits · No setup · Runs locally in your browser' }),
     ]),
     el('aside', { class: 'cl-hero-why', 'aria-label': 'Why it matters' }, [
+      el('div', { class: 'packet-heading' }, [
+        el('span', { class: 'cl-hero-why-label', text: 'INSIDE A WEP PROTECTED BODY' }),
+        el('span', { class: 'packet-tag', text: '24-bit IV' }),
+      ]),
+      el('div', { class: 'packet-diagram' }, [
+        el('div', { class: 'packet-part packet-public' }, [el('span', { text: 'PUBLIC' }), el('strong', { text: 'IV' }), el('small', { text: '3 bytes' })]),
+        el('div', { class: 'packet-part packet-id' }, [el('span', { text: 'PUBLIC' }), el('strong', { text: 'Key ID' }), el('small', { text: '1 byte' })]),
+        el('div', { class: 'packet-part packet-encrypted' }, [el('span', { text: 'ENCRYPTED WITH RC4' }), el('strong', { text: 'Payload + ICV' }), el('small', { text: 'message + 4-byte checksum' })]),
+      ]),
+      el('div', { class: 'failure-list' }, [
+        ...[
+          ['01', 'Repeat an IV', 'Repeat the keystream'],
+          ['02', 'Repair a checksum', 'Change an accepted message'],
+          ['03', 'Collect public IVs', 'Search for the shared key'],
+        ].map(([num, title, consequence]) => el('div', { class: 'failure-row' }, [
+          el('span', { class: 'failure-num', text: num }),
+          el('strong', { text: title }),
+          el('span', { class: 'failure-effect', text: consequence }),
+        ])),
+      ]),
       el('span', { class: 'cl-hero-why-label', text: 'WHY IT MATTERS' }),
       el('p', {
         class: 'cl-hero-why-text',
         text:
-          'WEP protected most of the world’s wireless traffic for a decade, and its ' +
-          'cipher was implemented correctly the whole time. It still fell in under a ' +
-          'minute, because the system around the cipher reused keystream, checked ' +
-          'integrity with a checksum, and handed the attacker three bytes of every key.',
+          'A cipher can match every test vector and still sit inside a broken protocol. ' +
+          'WEP’s failures live in the system around the cipher: its IVs, its checksum, ' +
+          'and its per-packet keys.',
       }),
     ]),
   ]);
 }
 
 function scopeNote(): HTMLElement {
-  return el('section', { class: 'scope-note', 'aria-labelledby': 'scope-heading' }, [
-    el('h2', { id: 'scope-heading', text: 'WHAT THIS IS, AND WHAT IT IS NOT' }),
+  return el('details', { class: 'scope-note' }, [
+    el('summary', { id: 'scope-heading', text: 'About this lab: scope, assumptions, and what it proves' }),
     el('p', {
       text:
         'A teaching exhibit, not production crypto. The cryptography is real: RC4 and ' +
@@ -135,13 +161,29 @@ function footer(): HTMLElement {
 function mount(): void {
   const app = document.getElementById('app');
   if (!app) throw new Error('#app is missing');
+  app.tabIndex = -1;
 
   const rendered = new Set<string>();
   const tablist = el('div', { class: 'tablist', role: 'tablist', 'aria-label': 'Exhibits' });
   const panelNodes = new Map<string, HTMLElement>();
   const tabNodes = new Map<string, HTMLButtonElement>();
+  const position = el('span', { class: 'exhibit-position', id: 'exhibit-position', role: 'status' });
+  const previous = el('button', { class: 'btn', type: 'button', text: '← Previous exhibit' });
+  const next = el('button', { class: 'btn btn-primary', type: 'button' });
+  let activeId = PANELS[0].id;
+
+  const experiment = el('section', { class: 'experiment', id: 'experiment', 'aria-labelledby': 'experiment-heading' });
+
+  function navigate(id: string, scroll = false, focus = false): void {
+    if (!PANELS.some((spec) => spec.id === id)) return;
+    if (location.hash !== `#${id}`) history.pushState(null, '', `#${id}`);
+    activate(id);
+    if (scroll) experiment.scrollIntoView({ block: 'start' });
+    if (focus) tabNodes.get(id)!.focus({ preventScroll: true });
+  }
 
   function activate(id: string): void {
+    activeId = id;
     for (const spec of PANELS) {
       const isActive = spec.id === id;
       const tab = tabNodes.get(spec.id)!;
@@ -154,6 +196,10 @@ function mount(): void {
         rendered.add(spec.id);
       }
     }
+    const index = PANELS.findIndex((spec) => spec.id === id);
+    position.textContent = `Exhibit ${index + 1} of ${PANELS.length}`;
+    previous.disabled = index === 0;
+    next.textContent = index === PANELS.length - 1 ? 'Back to the beginning ↺' : `Next: ${PANELS[index + 1].tab} →`;
   }
 
   for (const spec of PANELS) {
@@ -165,8 +211,11 @@ function mount(): void {
       'aria-controls': `panel-${spec.id}`,
       'aria-selected': 'false',
       tabindex: '-1',
-    }, [el('span', { class: 'tab-num', 'aria-hidden': 'true', text: spec.num }), el('span', { text: spec.tab })]) as HTMLButtonElement;
-    tab.addEventListener('click', () => activate(spec.id));
+    }, [
+      el('span', { class: 'tab-num', 'aria-hidden': 'true', text: spec.num.padStart(2, '0') }),
+      el('span', { class: 'tab-copy' }, [el('span', { text: spec.tab }), el('small', { 'aria-hidden': 'true', text: spec.lesson })]),
+    ]) as HTMLButtonElement;
+    tab.addEventListener('click', () => navigate(spec.id));
     // Arrow-key navigation between tabs, which a tablist is expected to have.
     tab.addEventListener('keydown', (event) => {
       const keys = ['ArrowRight', 'ArrowLeft', 'Home', 'End'];
@@ -178,8 +227,7 @@ function mount(): void {
         : event.key === 'ArrowLeft' ? (i - 1 + PANELS.length) % PANELS.length
         : event.key === 'Home' ? 0
         : PANELS.length - 1;
-      activate(PANELS[next].id);
-      tabNodes.get(PANELS[next].id)!.focus();
+      navigate(PANELS[next].id, false, true);
     });
     tabNodes.set(spec.id, tab);
     tablist.append(tab);
@@ -195,11 +243,49 @@ function mount(): void {
     panelNodes.set(spec.id, panel);
   }
 
-  const main = el('main', {}, [el('nav', { class: 'tabs', 'aria-label': 'Exhibits' }, [tablist])]);
-  for (const spec of PANELS) main.append(panelNodes.get(spec.id)!);
+  experiment.append(
+    el('div', { class: 'experiment-heading' }, [
+      el('div', {}, [el('p', { class: 'eyebrow', text: 'THE EXPERIMENT' }), el('h2', { id: 'experiment-heading', text: 'Follow the failure.' })]),
+      position,
+    ]),
+    el('nav', { class: 'tabs', 'aria-label': 'Exhibits' }, [tablist]),
+  );
+  for (const spec of PANELS) experiment.append(panelNodes.get(spec.id)!);
+  experiment.append(el('nav', { class: 'exhibit-navigation', 'aria-label': 'Continue the walkthrough' }, [previous, next]));
 
-  app.append(hero(), scopeNote(), main, footer());
-  activate(PANELS[0].id);
+  previous.addEventListener('click', () => navigate(PANELS[Math.max(0, PANELS.findIndex((spec) => spec.id === activeId) - 1)].id, true, true));
+  next.addEventListener('click', () => navigate(PANELS[(PANELS.findIndex((spec) => spec.id === activeId) + 1) % PANELS.length].id, true, true));
+
+  const main = el('main', {}, [
+    hero(),
+    el('p', { class: 'lab-context' }, [
+      el('span', { class: 'context-marker', 'aria-hidden': 'true', text: '◇' }),
+      el('span', {}, [el('strong', { text: 'Real cryptography. Local, synthetic traffic.' }), ' A teaching exhibit, not production crypto.']),
+    ]),
+    experiment,
+    scopeNote(),
+  ]);
+
+  app.append(main, footer());
+  for (const link of app.querySelectorAll<HTMLAnchorElement>('[data-exhibit]')) {
+    link.addEventListener('click', (event) => {
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      navigate(link.dataset.exhibit!, true, true);
+    });
+  }
+  window.addEventListener('hashchange', () => {
+    const id = location.hash.slice(1);
+    if (PANELS.some((spec) => spec.id === id)) {
+      activate(id);
+      experiment.scrollIntoView({ block: 'start' });
+    } else if (!location.hash) {
+      activate(PANELS[0].id);
+    }
+  });
+  const initial = PANELS.find((spec) => `#${spec.id}` === location.hash);
+  activate(initial?.id ?? PANELS[0].id);
+  if (initial) experiment.scrollIntoView({ block: 'start' });
 }
 
 mount();

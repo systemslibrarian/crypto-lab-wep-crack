@@ -43,20 +43,22 @@ export function renderPanel1(host: HTMLElement): void {
   const keyInput = el('input', {
     type: 'text',
     value: INSPECTION_KEY,
-    maxlength: '64',
+    maxlength: '512',
     spellcheck: 'false',
-    'aria-describedby': 'rc4-key-hint',
+    'aria-describedby': 'rc4-key-hint rc4-key-error',
   });
   const stepLabel = el('span', { class: 'bytes-label', id: 'rc4-step-label' });
   const permWrap = el('div', { class: 'perm-wrap', role: 'region', tabindex: '0', 'aria-label': 'RC4 permutation state, 256 bytes' });
   const explain = el('p', { class: 'hint', id: 'rc4-step-explain' });
   const stepOut = el('div', { id: 'rc4-step-out', role: 'status', 'aria-live': 'polite' });
+  const keyError = el('p', { class: 'field-error', id: 'rc4-key-error', role: 'status', hidden: true });
 
   let ksaTrace: KsaStep[] = [];
   let prgaTrace: PrgaStep[] = [];
   let cursor = 0; // 0..255 = KSA rounds, 256+ = PRGA steps
 
   const PRGA_STEPS = 16;
+  const scrubber = el('input', { type: 'range', id: 'rc4-step', min: '0', max: String(255 + PRGA_STEPS), value: '0', step: '1' });
 
   function rebuild(): boolean {
     const raw = keyInput.value.trim();
@@ -69,9 +71,23 @@ export function renderPanel1(host: HTMLElement): void {
       prgaTrace = [];
       new Rc4Keystream(key).next(PRGA_STEPS, prgaTrace);
       keyInput.setAttribute('aria-invalid', 'false');
+      keyError.hidden = true;
+      keyError.textContent = '';
       return true;
     } catch {
       keyInput.setAttribute('aria-invalid', 'true');
+      keyError.hidden = false;
+      keyError.textContent = 'Enter 1 to 256 complete hex bytes, for example 0102030405.';
+      clear(permWrap);
+      permWrap.hidden = true;
+      clear(stepOut);
+      stepLabel.textContent = 'WAITING FOR A VALID INSPECTION KEY';
+      explain.textContent = 'The executed state will appear when the key is valid.';
+      btnBack.disabled = true;
+      btnStep.disabled = true;
+      btnKsaEnd.disabled = true;
+      btnReset.disabled = true;
+      scrubber.disabled = true;
       return false;
     }
   }
@@ -85,7 +101,11 @@ export function renderPanel1(host: HTMLElement): void {
         : idx === marks.j ? 'perm-cell at-j stepped'
         : idx === marks.out ? 'perm-cell at-out stepped'
         : 'perm-cell';
-      grid.append(el('span', { class: cls, text: s[idx].toString(16).padStart(2, '0') }));
+      grid.append(el('span', {
+        class: cls,
+        title: `S[${idx}] = ${s[idx]}`,
+        text: s[idx].toString(16).padStart(2, '0'),
+      }));
     }
     permWrap.append(grid);
   }
@@ -146,8 +166,18 @@ export function renderPanel1(host: HTMLElement): void {
     btnBack.disabled = cursor === 0;
     btnStep.disabled = cursor >= 255 + PRGA_STEPS;
     btnKsaEnd.disabled = cursor >= 256;
+    btnReset.disabled = false;
+    scrubber.disabled = false;
+    permWrap.hidden = false;
+    scrubber.value = String(cursor);
+    scrubber.setAttribute('aria-valuetext', cursor < 256 ? `Key schedule round ${cursor} of 255` : `Keystream output byte ${cursor - 256} of 15`);
     draw();
   }
+
+  scrubber.addEventListener('input', () => {
+    cursor = Number(scrubber.value);
+    sync();
+  });
 
   btnStep.addEventListener('click', () => {
     if (cursor < 255 + PRGA_STEPS) cursor++;
@@ -195,7 +225,9 @@ export function renderPanel1(host: HTMLElement): void {
           'Any 1 to 256 bytes — that is RC4’s own contract. WEP’s 5-or-13-byte ' +
           'rule belongs to the WEP wrapper in panel 2, not to the cipher.',
       }),
+      keyError,
       stepLabel,
+      el('div', { class: 'step-scrubber' }, [field('Jump to an executed step', scrubber)]),
       permWrap,
       explain,
       stepOut,
@@ -292,7 +324,7 @@ function renderVectorCheck(): HTMLElement {
             `correctness against the specification. It is not a statement that RC4 is secure.`,
         }),
       ]),
-      scroller('RFC 6229 vector comparison', [
+      details('Inspect all 24 published test-vector comparisons', [scroller('RFC 6229 vector comparison', [
         el('table', {}, [
           el('caption', { text: 'Expected bytes from RFC 6229 beside the bytes this cipher computed' }),
           el('thead', {}, [
@@ -306,7 +338,7 @@ function renderVectorCheck(): HTMLElement {
           ]),
           el('tbody', {}, rows),
         ]),
-      ]),
+      ])]),
     ],
     { id: 'rc4-vectors' }
   );

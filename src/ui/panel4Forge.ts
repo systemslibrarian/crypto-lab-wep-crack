@@ -20,7 +20,7 @@ import { bytesToPrintable, equalBytes, randomBytes, textToBytes, toHex } from '.
 import { forge, singleBitMask, targetedMask, xorMaskAt } from '../wep/forge';
 import { wepEncrypt, wepReceive } from '../wep/wep';
 import { WEP_CLEAR_PREFIX_LEN, WEP_ICV_LEN } from '../wep/types';
-import { byteBlock, card, clear, details, el, field, note, verdict } from './dom';
+import { byteBlock, card, clear, details, el, field, note, updatePreservingFocus, verdict } from './dom';
 
 /** The sentence this lab is required to state and to prove. */
 export const NEGATIVE_CLAIM =
@@ -48,6 +48,10 @@ export function renderPanel4(host: HTMLElement): void {
   const out = el('div', { id: 'forge-out' });
 
   function render(): void {
+    updatePreservingFocus(out, draw);
+  }
+
+  function draw(): void {
     clear(out);
     const payload = textToBytes(msgInput.value);
     if (payload.length === 0) {

@@ -164,10 +164,31 @@ npm run mutations    # prove the tests bite (see Build & Verify)
 
 Playwright needs its browser once: `npx playwright install chromium`.
 
+The **Start the walkthrough** link enters the five exhibits in order; **See the
+forgery** jumps straight to the accepted message modification. Previous/next
+controls and arrow-key tab navigation keep the active exhibit in the URL
+(`/#rc4`, `/#wep`, `/#collision`, `/#forge`, `/#ptw`), so an exhibit can be
+bookmarked or shared. Session keys and traffic are never saved in the URL.
+Scope notes and all 24 vector comparisons are available in expandable sections.
+
+The RC4 slider jumps to actual executed KSA or PRGA state. Invalid keys clear
+that state and explain the required format. PTW generates traffic in yielding
+batches, so progress remains visible and collection can be cancelled. Cancelling
+an active search terminates its worker immediately; resetting the session also
+releases the worker and restores the controls. Interrupted runs do not display
+unavailable final measurements.
+
 ## Build & Verify
 
-**189 tests pass** — 149 unit and known-answer tests under Vitest, plus 38
-rendered-claim tests under Playwright, plus the 2-test accessibility gate.
+**200 tests pass** — 149 unit and known-answer tests under Vitest, plus 38
+rendered-claim tests and 11 interaction regressions under Playwright, plus the
+2-test accessibility gate. `npm run test:claims` runs both browser claim and
+interaction suites; `npx playwright test` runs all browser checks together.
+
+The interaction regressions cover bookmarked exhibits, browser history,
+keyboard navigation, the full RC4 key-length contract, field-specific errors,
+typing and cursor preservation, cancellation during traffic collection and
+worker search, session resets, worker startup failure, and reflow at 320px.
 
 The evidence behind the numbers, all of it external to this repo:
 

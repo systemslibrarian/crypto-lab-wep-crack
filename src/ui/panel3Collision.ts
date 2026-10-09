@@ -34,7 +34,7 @@ import {
 } from '../wep/traffic';
 import type { GeneratedPacket } from '../wep/types';
 import { parseBody } from '../wep/wep';
-import { byteBlock, card, clear, details, el, field, note, statusRegion, verdict } from './dom';
+import { byteBlock, card, clear, details, el, field, note, statusRegion, updatePreservingFocus, verdict } from './dom';
 
 const BATCH = 2000;
 const MAX_PACKETS = 120000;
@@ -70,7 +70,7 @@ export function renderPanel3(host: HTMLElement): void {
 
   function renderStatus(): void {
     clear(status);
-    const expectedPairs = (packets.length * packets.length) / (2 * IV_SPACE);
+    const expectedPairs = (packets.length * (packets.length - 1)) / (2 * IV_SPACE);
     status.append(
       el('div', {}, [
         collision
@@ -88,7 +88,7 @@ export function renderPanel3(host: HTMLElement): void {
             el('dd', { id: 'coll-distinct', text: new Set(packets.map((p) => toHex(p.iv))).size.toLocaleString() }),
           ]),
           el('div', { class: 'count-row' }, [
-            el('dt', { text: 'Expected repeats at this count' }),
+            el('dt', { text: 'Expected colliding pairs' }),
             el('dd', { text: expectedPairs.toFixed(1) }),
           ]),
           el('div', { class: 'count-row' }, [
@@ -104,14 +104,18 @@ export function renderPanel3(host: HTMLElement): void {
           class: 'hint',
           text:
             `That is the honest observation, not a failure. With ${IV_POLICY}, a repeat ` +
-            `becomes likely around a few thousand packets — the "expected repeats" figure ` +
-            `above is n²/2N, and it is what you should compare the real count against.`,
+            `becomes likely around a few thousand packets — the expected colliding-pair count ` +
+            `above is n(n−1)/2N. It describes the distribution, not a promised outcome.`,
         })
       );
     }
   }
 
   function renderCollision(): void {
+    updatePreservingFocus(result, drawCollision);
+  }
+
+  function drawCollision(): void {
     clear(result);
     if (!collision) return;
     const { a, b, observedAfter } = collision;
@@ -337,9 +341,9 @@ export function renderPanel3(host: HTMLElement): void {
       ]),
       el('p', {
         text:
-          'What makes WEP worse than any of those is not the cipher. It is that the IV is ' +
-          'only 24 bits wide, so the collision is not an operator mistake you can avoid — ' +
-          'it is a scheduled event.',
+          'With this panel’s random-IV policy, the small 24-bit space makes collisions ' +
+          'likely after only a few thousand packets. A counter delays reuse until ' +
+          'wraparound or a restart; IV policy is part of the system’s design.',
       }),
     ])
   );

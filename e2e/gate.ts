@@ -741,6 +741,8 @@ export async function driveAllStates(page: Page, theme: string): Promise<void> {
   await expect(page.locator('a.cl-skip-link')).toBeFocused();
   await scanAt('the shared skip link focused, slid in from top:-3rem');
 
+  await openDisclosure(page, /About this lab/, scanAt);
+
   // ── Panel 1: step the real cipher ───────────────────────────────────────
   const keyInput = page.locator('#panel-rc4 input[type="text"]').first();
   await page.getByRole('button', { name: /^Step/ }).click();
@@ -765,6 +767,7 @@ export async function driveAllStates(page: Page, theme: string): Promise<void> {
   await keyInput.fill('0102030405');
   await expect(keyInput).toHaveAttribute('aria-invalid', 'false');
 
+  await openDisclosure(page, /published test-vector comparisons/, scanAt);
   await openDisclosure(page, /not a security claim/, scanAt);
 
   // ── Panel 2: the construction ───────────────────────────────────────────
