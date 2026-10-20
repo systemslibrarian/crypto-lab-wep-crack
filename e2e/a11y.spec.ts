@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import {
   boot,
+  scan,
   driveAllStates,
   expectBaselineNotStale,
   NARROW,
@@ -61,3 +62,15 @@ for (const theme of ['dark'] as const) {
     reportCollected();
   });
 }
+
+
+test('RC4 bias measured and conditioned states pass the full scan at 320px', async ({ page }) => {
+  test.setTimeout(180000);
+  await page.setViewportSize({width:320,height:900});await boot(page,'dark');
+  await page.locator('#bias-size').selectOption('4096');await page.locator('#bias-measure').click();
+  await expect(page.locator('#bias-progress')).toContainText('Completed 4096');await scan(page,'bias measurement @320px');
+  await page.getByText('Inspect all 256 histogram counts',{exact:true}).click();await scan(page,'bias table @320px');
+  await page.locator('#bias-find').click();await expect(page.locator('#bias-found')).toBeVisible();await scan(page,'bias conditioned initial state @320px');
+  await page.locator('#bias-step').click();await scan(page,'bias first round @320px');
+  await page.locator('#bias-step').click();await scan(page,'bias second round @320px');
+});

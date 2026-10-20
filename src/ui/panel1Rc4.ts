@@ -1,3 +1,5 @@
+import { drawPermutation } from './permutation';
+import { renderBiasCard } from './biasCard';
 /**
  * Panel 1 — RC4 itself.
  *
@@ -92,30 +94,12 @@ export function renderPanel1(host: HTMLElement): void {
     }
   }
 
-  function drawPermutation(s: Uint8Array, marks: { i?: number; j?: number; out?: number }): void {
-    clear(permWrap);
-    const grid = el('div', { class: 'perm' });
-    for (let idx = 0; idx < 256; idx++) {
-      const cls =
-        idx === marks.i ? 'perm-cell at-i stepped'
-        : idx === marks.j ? 'perm-cell at-j stepped'
-        : idx === marks.out ? 'perm-cell at-out stepped'
-        : 'perm-cell';
-      grid.append(el('span', {
-        class: cls,
-        title: `S[${idx}] = ${s[idx]}`,
-        text: s[idx].toString(16).padStart(2, '0'),
-      }));
-    }
-    permWrap.append(grid);
-  }
-
   function draw(): void {
     clear(stepOut);
     if (cursor < 256) {
       const step = ksaTrace[cursor];
       stepLabel.textContent = `KEY SCHEDULE — round ${step.i} of 255`;
-      drawPermutation(step.s, { i: step.i, j: step.jAfter });
+      drawPermutation(permWrap, step.s, { i: step.i, j: step.jAfter });
       explain.textContent =
         `j moved from ${step.jBefore} to ${step.jAfter}, because j + S[${step.i}] + ` +
         `K[${step.keyIndex}] = ${step.jBefore} + ${step.sAtI} + ${step.keyByte} ` +
@@ -134,7 +118,7 @@ export function renderPanel1(host: HTMLElement): void {
       const n = cursor - 256;
       const step = prgaTrace[n];
       stepLabel.textContent = `KEYSTREAM — output byte ${n}`;
-      drawPermutation(step.s, { i: step.i, j: step.j, out: step.outIndex });
+      drawPermutation(permWrap, step.s, { i: step.i, j: step.j, out: step.outIndex });
       explain.textContent =
         `i = ${step.i}, then j += S[i] gives j = ${step.j}. S[i] and S[j] swapped, and ` +
         `the output is read from index S[i] + S[j] = ${step.outIndex}: the byte there is ` +
@@ -236,6 +220,7 @@ export function renderPanel1(host: HTMLElement): void {
 
   // ── The vector check: compute both sides and compare ──────────────────
   host.append(renderVectorCheck());
+  host.append(renderBiasCard(host));
 
   host.append(
     details('Why passing these vectors is not a security claim', [

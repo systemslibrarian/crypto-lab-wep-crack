@@ -1,0 +1,129 @@
+{
+  "generatedAt": "2026-10-20T20:28:34.852Z",
+  "baseHashes": {
+    "index-BCY6Pnix.js": "e4651045e548",
+    "index-D5sFQGy6.css": "9a2b4c7b0a18",
+    "worker-BGZ226aX.js": "89aa24535864"
+  },
+  "results": [
+    {
+      "id": "bias-first-byte",
+      "fault": "Counts the first byte instead of the second",
+      "evidence": "Exact conditioned second-byte property",
+      "owner": "the second-byte conditioned property holds for every found key",
+      "baseline": "PASS",
+      "diffLines": 7,
+      "build": "SUCCEEDED",
+      "hashesMoved": [
+        "index-CwFDCJHe.js"
+      ],
+      "mutatedBundle": "index-CwFDCJHe.js=b63cccebde94 index-D5sFQGy6.css=9a2b4c7b0a18 worker-BGZ226aX.js=89aa24535864",
+      "verdict": "KILLED",
+      "failedWith": "× the second-byte conditioned property holds for every found key 60ms",
+      "restored": true,
+      "greenAgain": true
+    },
+    {
+      "id": "bias-control-source",
+      "fault": "Substitutes the control source for RC4 output",
+      "evidence": "Measured separation from uniform",
+      "owner": "fresh-key RC4 second-byte bias has a wide statistical separation from the control",
+      "baseline": "PASS",
+      "diffLines": 7,
+      "build": "SUCCEEDED",
+      "hashesMoved": [
+        "index-OuW5OvEf.js"
+      ],
+      "mutatedBundle": "index-D5sFQGy6.css=9a2b4c7b0a18 index-OuW5OvEf.js=824b4c9d4aec worker-BGZ226aX.js=89aa24535864",
+      "verdict": "KILLED",
+      "failedWith": "× fresh-key RC4 second-byte bias has a wide statistical separation from the control 652ms",
+      "restored": true,
+      "greenAgain": true
+    },
+    {
+      "id": "bias-always-alarm",
+      "fault": "Hard-wires an alarm even when the interval includes chance",
+      "evidence": "Verdict is derived from observed counts",
+      "owner": "RC4 bias verdict follows the printed interval even when a deterministic fixture is uniform",
+      "baseline": "PASS",
+      "diffLines": 7,
+      "build": "SUCCEEDED",
+      "hashesMoved": [
+        "index-DXVI5sUJ.js"
+      ],
+      "mutatedBundle": "index-D5sFQGy6.css=9a2b4c7b0a18 index-DXVI5sUJ.js=17a43a009c0c worker-BGZ226aX.js=89aa24535864",
+      "verdict": "KILLED",
+      "failedWith": "✘  1 [claims] › e2e/claims.spec.ts:712:1 › RC4 bias verdict follows the printed interval even when a deterministic fixture is uniform (5.5s)",
+      "restored": true,
+      "greenAgain": true
+    },
+    {
+      "id": "bias-always-neutral",
+      "fault": "Suppresses a measured bias alarm",
+      "evidence": "Bias and published-vector agreement coexist",
+      "owner": "RC4 bias negative claim coexists with every verified RFC vector and measured bias",
+      "baseline": "PASS",
+      "diffLines": 7,
+      "build": "SUCCEEDED",
+      "hashesMoved": [
+        "index-DCQ6Aifr.js"
+      ],
+      "mutatedBundle": "index-D5sFQGy6.css=9a2b4c7b0a18 index-DCQ6Aifr.js=6c54ba755320 worker-BGZ226aX.js=89aa24535864",
+      "verdict": "KILLED",
+      "failedWith": "✘  1 [claims] › e2e/claims.spec.ts:699:1 › RC4 bias negative claim coexists with every verified RFC vector and measured bias (7.2s)",
+      "restored": true,
+      "greenAgain": true
+    },
+    {
+      "id": "bias-condition-painted-pass",
+      "fault": "Paints the exact conditioned weakness as a pass",
+      "evidence": "Exact weakness is an alarm",
+      "owner": "RC4 bias negative claim coexists with every verified RFC vector and measured bias",
+      "baseline": "PASS",
+      "diffLines": 7,
+      "build": "SUCCEEDED",
+      "hashesMoved": [
+        "index-Dyi4gPx-.js"
+      ],
+      "mutatedBundle": "index-D5sFQGy6.css=9a2b4c7b0a18 index-Dyi4gPx-.js=020e174d8cfc worker-BGZ226aX.js=89aa24535864",
+      "verdict": "KILLED",
+      "failedWith": "✘  1 [claims] › e2e/claims.spec.ts:699:1 › RC4 bias negative claim coexists with every verified RFC vector and measured bias (7.3s)",
+      "restored": true,
+      "greenAgain": true
+    },
+    {
+      "id": "bias-trace-painted-pass",
+      "fault": "Paints the zero second output as a safe result",
+      "evidence": "Both real PRGA frames and their verdict",
+      "owner": "RC4 bias conditioned key and both PRGA frames match an independent cipher",
+      "baseline": "PASS",
+      "diffLines": 7,
+      "build": "SUCCEEDED",
+      "hashesMoved": [
+        "index-j-fDNHZX.js"
+      ],
+      "mutatedBundle": "index-D5sFQGy6.css=9a2b4c7b0a18 index-j-fDNHZX.js=021687f82579 worker-BGZ226aX.js=89aa24535864",
+      "verdict": "KILLED",
+      "failedWith": "✘  1 [claims] › e2e/claims.spec.ts:686:1 › RC4 bias conditioned key and both PRGA frames match an independent cipher (5.7s)",
+      "restored": true,
+      "greenAgain": true
+    },
+    {
+      "id": "bias-negative-claim-removed",
+      "fault": "Deletes the scope limitation despite successful vector checks",
+      "evidence": "Correct implementation does not establish a sound cipher",
+      "owner": "RC4 bias negative claim coexists with every verified RFC vector and measured bias",
+      "baseline": "PASS",
+      "diffLines": 7,
+      "build": "SUCCEEDED",
+      "hashesMoved": [
+        "index-qrVHZv0H.js"
+      ],
+      "mutatedBundle": "index-D5sFQGy6.css=9a2b4c7b0a18 index-qrVHZv0H.js=68ab1722a18d worker-BGZ226aX.js=89aa24535864",
+      "verdict": "KILLED",
+      "failedWith": "✘  1 [claims] › e2e/claims.spec.ts:699:1 › RC4 bias negative claim coexists with every verified RFC vector and measured bias (7.3s)",
+      "restored": true,
+      "greenAgain": true
+    }
+  ]
+}

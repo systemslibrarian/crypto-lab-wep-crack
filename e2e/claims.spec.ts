@@ -33,7 +33,8 @@ import { boot } from './gate';
  * Deliberately a SECOND implementation. If it shared code with src/rc4/rc4.ts
  * it would agree with any bug in it, which is the failure mode this whole
  * section exists to avoid. Written straight from the published algorithm. */
-function rc4KeystreamIndependent(key: number[], length: number): number[] {
+interface IndependentRc4Frame { i:number; j:number; outIndex:number; out:number; s:number[] }
+function rc4KeystreamIndependent(key: number[], length: number, trace?: IndependentRc4Frame[]): number[] {
   const s: number[] = [];
   for (let i = 0; i < 256; i++) s.push(i);
   let j = 0;
@@ -41,6 +42,7 @@ function rc4KeystreamIndependent(key: number[], length: number): number[] {
     j = (j + s[i] + key[i % key.length]) % 256;
     [s[i], s[j]] = [s[j], s[i]];
   }
+  trace?.push({i:0,j:0,outIndex:-1,out:-1,s:[...s]});
   const out: number[] = [];
   let x = 0;
   let y = 0;
@@ -49,6 +51,7 @@ function rc4KeystreamIndependent(key: number[], length: number): number[] {
     y = (y + s[x]) % 256;
     [s[x], s[y]] = [s[y], s[x]];
     out.push(s[(s[x] + s[y]) % 256]);
+    trace?.push({i:x,j:y,outIndex:(s[x]+s[y])%256,out:out.at(-1)!,s:[...s]});
   }
   return out;
 }
@@ -650,4 +653,88 @@ test.describe('page-wide honesty claims', () => {
     expect(desc.length).toBeGreaterThan(40);
     expect(why.length).toBeGreaterThan(40);
   });
+});
+
+function biasWilsonIndependent(k:number,n:number):[number,number] {
+  // Solve the score-test quadratic (n+z²)p²-(2k+z²)p+k²/n <= 0.
+  const z2=1.96**2,a=n+z2,b=-(2*k+z2),c=k*k/n,d=Math.sqrt(b*b-4*a*c);
+  return [(-b-d)/(2*a),(-b+d)/(2*a)];
+}
+async function assertBiasCounts(page:Page) {
+  const rc4Text=(await page.locator('#bias-rc4-count dd').textContent())!;
+  const parsed=rc4Text.match(/^(\d+) \/ (\d+); rate ([\d.]+); ([\d.]+) × \(1\/256\); 95% Wilson \[([\d.]+), ([\d.]+)\]$/)!;
+  expect(parsed).not.toBeNull();const k=Number(parsed[1]),n=Number(parsed[2]),ci=biasWilsonIndependent(k,n);
+  expect(Number(parsed[3])).toBeCloseTo(k/n,8);expect(Number(parsed[4])).toBeCloseTo(k/n*256,4);
+  expect(Number(parsed[5])).toBeCloseTo(ci[0],8);expect(Number(parsed[6])).toBeCloseTo(ci[1],8);
+  const excludes=ci[0]>1/256||ci[1]<1/256;
+  await expect(page.locator('[data-claim="bias-verdict"]')).toHaveAttribute('data-verdict',excludes?'alarm':'neutral');
+  await page.getByText('Inspect all 256 histogram counts',{exact:true}).click();
+  const bins=(await page.locator('#bias-hist-table tbody td').allTextContents()).map(Number);
+  expect(bins.length).toBe(256);expect(bins.reduce((a,b)=>a+b,0)).toBe(n);expect(bins[0]).toBe(k);
+  const controlText=(await page.locator('#bias-control-count dd').textContent())!,match=controlText.match(/^(\d+) \/ (\d+); rate ([\d.]+); ([\d.]+) × \(1\/256\); 95% Wilson \[([\d.]+), ([\d.]+)\]$/)!;
+  const ck=Number(match[1]),control=biasWilsonIndependent(ck,n);expect(Number(match[2])).toBe(n);
+  expect(Number(match[3])).toBeCloseTo(ck/n,8);expect(Number(match[4])).toBeCloseTo(ck/n*256,4);
+  expect(Number(match[5])).toBeCloseTo(control[0],8);expect(Number(match[6])).toBeCloseTo(control[1],8);
+  await expect(page.locator('[data-claim="bias-control"]')).toHaveAttribute('data-verdict','neutral');
+  await expect(page.locator('[data-claim="bias-control"]')).toContainText(control[0]<=1/256&&control[1]>=1/256?'consistent with 1/256':'outside this 95% interval');
+  const split=(await page.locator('#bias-split').textContent())!.match(/: (\d+) \/ (\d+) gave Z₂ = 0\. Other keys: (\d+) \/ (\d+)/)!;
+  expect(Number(split[1])).toBe(Number(split[2]));expect(Number(split[1])+Number(split[3])).toBe(k);expect(Number(split[2])+Number(split[4])).toBe(n);
+  await expect(page.locator('[data-claim="bias-condition"]')).toHaveAttribute('data-verdict',Number(split[2])?'alarm':'neutral');
+  return {k,n,ci};
+}
+
+test('RC4 bias conditioned key and both PRGA frames match an independent cipher',async({page})=>{
+  await boot(page, 'dark');await page.locator('#bias-find').click();await expect(page.locator('#bias-found')).toBeVisible();
+  const key=hexToBytes((await page.locator('#bias-key .bytes').textContent())!);expect(key.length).toBe(16);
+  const frames:IndependentRc4Frame[]=[];const stream=rc4KeystreamIndependent(key,2,frames);
+  expect(frames[0].s[2]).toBe(0);expect(frames[0].s[1]).not.toBe(2);expect(stream[1]).toBe(0);
+  for(let i=1;i<=2;i++){
+    await page.locator('#bias-step').click();const f=frames[i];
+    const actual=(await page.locator('#bias-permutation .perm-cell').allTextContents()).map(x=>parseInt(x,16));expect(actual).toEqual(f.s);
+    await expect(page.locator('#bias-trace')).toHaveText(`Round ${i}: i=${f.i}; j=${f.j}; S[i]=${f.s[f.i]}; S[j]=${f.s[f.j]}; output index=${f.outIndex}; output byte=${f.out}.`);
+  }
+  await expect(page.locator('[data-claim="bias-trace-verdict"]')).toHaveAttribute('data-verdict','alarm');await expect(page.locator('#bias-step')).toBeDisabled();
+});
+
+test('RC4 bias negative claim coexists with every verified RFC vector and measured bias',async({page})=>{
+  await boot(page, 'dark');await expect(page.locator('#bias-size')).toHaveValue('65536');await page.locator('#bias-measure').click();
+  await expect(page.locator('#bias-progress')).toContainText('Completed 65536',{timeout:120000});
+  const {n}=await assertBiasCounts(page);expect(n).toBe(65536);
+  await expect(page.locator('[data-claim="bias-verdict"]')).toHaveAttribute('data-verdict','alarm');
+  await expect(page.locator('[data-claim="bias-verdict"]')).toContainText('BIASED');
+  await page.locator('summary').filter({hasText:/published test-vector comparisons/}).click();
+  await expect(page.locator('#rc4-vector-verdict')).toContainText('TEST VECTOR MATCH');
+  await expect(page.locator('#rc4-vectors [data-claim="vector-row"][data-verdict="pass"]')).toHaveCount(24);
+  await expect(page.locator('#bias-negative')).toBeVisible();
+  await expect(page.locator('#bias-negative')).toHaveText('Passing every RFC 6229 vector does not make RC4 a sound cipher: the same verified implementation shows its second byte is zero about twice as often as chance.');
+});
+
+test('RC4 bias verdict follows the printed interval even when a deterministic fixture is uniform',async({page})=>{
+  // Find two input fixtures independently; the page still runs its real cipher.
+  let zero:number[]|undefined,other:number[]|undefined;
+  for(let i=0;i<10000&&(!zero||!other);i++){
+    const key=Array(16).fill(0);key[0]=i&255;key[1]=i>>>8;
+    if(rc4KeystreamIndependent(key,2)[1]===0)zero=key;else other=key;
+  }
+  expect(zero).toBeDefined();expect(other).toBeDefined();
+  await page.addInitScript(({zero,other})=>{
+    const original=crypto.getRandomValues.bind(crypto);let samples=0;
+    crypto.getRandomValues=((a:Uint8Array)=>{if(a instanceof Uint8Array&&a.length===16){a.set(samples++%256===0?zero:other);return a;}if(a instanceof Uint8Array&&a.length===2){a.fill(0);return a;}return original(a as Uint8Array<ArrayBuffer>);}) as typeof crypto.getRandomValues;
+  },{zero:zero!,other:other!});
+  await boot(page, 'dark');await page.locator('#bias-size').selectOption('4096');await page.locator('#bias-measure').click();await expect(page.locator('#bias-progress')).toContainText('Completed 4096');
+  const result=await assertBiasCounts(page);expect(result.k).toBe(16);expect(result.n).toBe(4096);
+  await expect(page.locator('[data-claim="bias-verdict"]')).toHaveAttribute('data-verdict','neutral');
+  await page.locator('#bias-size').dispatchEvent('change');await expect(page.locator('[data-claim="bias-verdict"]')).toBeVisible();
+  await page.locator('#bias-measure').click();await expect(page.locator('#bias-result')).toBeEmpty();
+  await page.locator('#bias-cancel').click();await expect(page.locator('[data-claim="bias-verdict"]')).toContainText('PARTIAL');
+});
+
+test('RC4 bias cancellation on hiding the panel reports actual partial samples',async({page})=>{
+  await boot(page, 'dark');await page.locator('#bias-size').selectOption('262144');await page.locator('#bias-measure').click();
+  await page.getByRole('tab',{name:/Wrap it in WEP/}).click();
+  await expect(page.locator('#bias-progress')).toContainText('partial verdict');
+  await page.getByRole('tab',{name:/RC4 itself/}).click();
+  const counts=await assertBiasCounts(page);expect(counts.n).toBeLessThan(262144);expect(counts.n).toBeGreaterThan(0);
+  await expect(page.locator('[data-claim="bias-verdict"]')).toContainText('PARTIAL');
+  await page.locator('#bias-size').selectOption('4096');await expect(page.locator('#bias-result')).toBeEmpty();
 });

@@ -52,6 +52,48 @@ const DIST_ASSETS = join(ROOT, 'dist', 'assets');
  */
 const MUTATIONS = [
   {
+    id: 'bias-first-byte', fault: 'Counts the first byte instead of the second',
+    evidence: 'Exact conditioned second-byte property', file: 'src/rc4/bias.ts',
+    anchor: '    const second=stream[1];', replacement: '    const second=stream[0];',
+    owner: { runner: 'vitest', name: 'the second-byte conditioned property holds for every found key' },
+  },
+  {
+    id: 'bias-control-source', fault: 'Substitutes the control source for RC4 output',
+    evidence: 'Measured separation from uniform', file: 'src/rc4/bias.ts',
+    anchor: '    const second=stream[1];', replacement: '    const second=keySource(2)[1]; void stream;',
+    owner: { runner: 'vitest', name: 'fresh-key RC4 second-byte bias has a wide statistical separation from the control' },
+  },
+  {
+    id: 'bias-always-alarm', fault: 'Hard-wires an alarm even when the interval includes chance',
+    evidence: 'Verdict is derived from observed counts', file: 'src/ui/biasCard.ts',
+    anchor: "verdict(excludes?'alarm':'neutral',prefix+", replacement: "verdict('alarm',prefix+",
+    owner: { runner: 'playwright', project: 'claims', name: 'RC4 bias verdict follows the printed interval even when a deterministic fixture is uniform' },
+  },
+  {
+    id: 'bias-always-neutral', fault: 'Suppresses a measured bias alarm',
+    evidence: 'Bias and published-vector agreement coexist', file: 'src/ui/biasCard.ts',
+    anchor: "verdict(excludes?'alarm':'neutral',prefix+", replacement: "verdict('neutral',prefix+",
+    owner: { runner: 'playwright', project: 'claims', name: 'RC4 bias negative claim coexists with every verified RFC vector and measured bias' },
+  },
+  {
+    id: 'bias-condition-painted-pass', fault: 'Paints the exact conditioned weakness as a pass',
+    evidence: 'Exact weakness is an alarm', file: 'src/ui/biasCard.ts',
+    anchor: "result.failureKey?'fail':result.conditioned?'alarm':'neutral'", replacement: "result.failureKey?'fail':result.conditioned?'pass':'neutral'",
+    owner: { runner: 'playwright', project: 'claims', name: 'RC4 bias negative claim coexists with every verified RFC vector and measured bias' },
+  },
+  {
+    id: 'bias-trace-painted-pass', fault: 'Paints the zero second output as a safe result',
+    evidence: 'Both real PRGA frames and their verdict', file: 'src/ui/biasCard.ts',
+    anchor: "verdict(current.out===0?'alarm':'fail'", replacement: "verdict(current.out===0?'pass':'fail'",
+    owner: { runner: 'playwright', project: 'claims', name: 'RC4 bias conditioned key and both PRGA frames match an independent cipher' },
+  },
+  {
+    id: 'bias-negative-claim-removed', fault: 'Deletes the scope limitation despite successful vector checks',
+    evidence: 'Correct implementation does not establish a sound cipher', file: 'src/ui/biasCard.ts',
+    anchor: "el('p',{id:'bias-negative',text:BIAS_NEGATIVE_CLAIM})", replacement: "el('p',{id:'bias-negative',text:''})",
+    owner: { runner: 'playwright', project: 'claims', name: 'RC4 bias negative claim coexists with every verified RFC vector and measured bias' },
+  },
+  {
     id: 'rc4-prga',
     fault: 'Incorrect RC4 PRGA operation',
     evidence: 'Published vector agreement',
@@ -248,8 +290,11 @@ function runOwner(owner) {
   // the fix; counting it would have been the bug.
   sh('pkill -f "vite preview" || true');
   waitForPortFree(PORT);
+  // Optional local browser configuration; the default/CI invocation is unchanged.
+  const configArg = process.env.PLAYWRIGHT_CONFIG
+    ? ` --config '${process.env.PLAYWRIGHT_CONFIG.replaceAll("'", "'\\''")}'` : '';
   return sh(
-    `npx playwright test --project=${owner.project} --retries=0 -g ${JSON.stringify(owner.name)}`,
+    `npx playwright test --project=${owner.project} --retries=0${configArg} -g ${JSON.stringify(owner.name)}`,
     { env: { CI: '1' } }
   );
 }

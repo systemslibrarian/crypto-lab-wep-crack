@@ -770,6 +770,18 @@ export async function driveAllStates(page: Page, theme: string): Promise<void> {
   await openDisclosure(page, /published test-vector comparisons/, scanAt);
   await openDisclosure(page, /not a security claim/, scanAt);
 
+  // New RC4 bias card: scan computed outcomes and both recorded PRGA states.
+  await page.locator('#bias-size').selectOption('4096');
+  await page.locator('#bias-measure').click();
+  await expect(page.locator('#bias-progress')).toContainText('Completed 4096');
+  await scanAt('RC4 bias: measurement and histogram');
+  await openDisclosure(page, /Inspect all 256 histogram counts/, scanAt);
+  await page.locator('#bias-find').click();
+  await expect(page.locator('#bias-found')).toBeVisible();
+  await scanAt('RC4 bias: conditioned key');
+  await page.locator('#bias-step').click();await scanAt('RC4 bias: first PRGA round');
+  await page.locator('#bias-step').click();await scanAt('RC4 bias: second PRGA round');
+
   // ── Panel 2: the construction ───────────────────────────────────────────
   await openTab(page, /Wrap it in WEP/, '#panel-wep');
   await expect(page.locator('#wep-verdict .verdict')).toBeVisible();

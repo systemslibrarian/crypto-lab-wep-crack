@@ -58,7 +58,7 @@ chosen by this lab, so its statistics are not those of arbitrary real traffic.
 - **Not that RC4 is sound.** Passing RFC 6229 vectors establishes agreement with
   a specification. RC4 has cryptographic weaknesses beyond anything WEP does
   with it, and RFC 7465 prohibits RC4 cipher suites in TLS. Nothing here implies
-  that fresh keys plus a MAC would rehabilitate RC4 as a modern design choice.
+  that fresh keys plus a MAC would rehabilitate RC4 as a modern design choice — panel 1 measures one such weakness, the second-byte bias, live.
 - **Not that a patched WEP would be safe.** There is no "secure WEP" setting.
   The separate obligations are sound key and nonce handling, cryptographic
   authentication, and a sound primitive and construction.
@@ -78,7 +78,7 @@ chosen by this lab, so its statistics are not those of arbitrary real traffic.
    Every frame is executed state, read back from the cipher's own trace. All 24
    RFC 6229 expected-byte rows are computed and shown beside the published
    bytes; a pass reads `TEST VECTOR MATCH`, scoped on screen to implementation
-   correctness.
+   correctness. The second-byte bias card compares fresh-key RC4 output with a random control, shows a Wilson interval and histogram, and replays the exact conditioned two-round mechanism.
 2. **Wrap it in WEP** — build the protected body step by step: the IV-prepended
    per-packet key, the CRC-32 of the plaintext, the little-endian ICV, the
    serialised body, and the receiver's genuine verification. Both shared-key
@@ -316,6 +316,8 @@ dedicated worker with progress and cancellation, so the page stays responsive.
   The Insecurity of 802.11*, MobiCom 2001 — the original WEP analysis and
   message-modification result.
 - **[R8]** IEEE 802.11-1997, the WEP construction.
+- **[R9]** Mantin and Shamir, [A Practical Attack on Broadcast RC4](https://www.iacr.org/cryptodb/data/paper.php?pubkey=3134), FSE 2001, LNCS 2355, pp. 152–164, doi:10.1007/3-540-45473-X_13. Bibliographic record verified; no paper-specific recovery figures are quoted.
+- **[R10]** AlFardan, Bernstein, Paterson, Poettering and Schuldt, [On the Security of RC4 in TLS](https://www.usenix.org/conference/usenixsecurity13/technical-sessions/paper/alfardan), USENIX Security 2013, pp. 305–320. The authors report plaintext-recovery attacks; this card executes only the bias measurement.
 
 ---
 
