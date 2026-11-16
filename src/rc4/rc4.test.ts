@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { fromHex, toHex } from '../wep/bytes';
 import { invert, ksa, ksaPartial, N, Rc4KeyError, Rc4Keystream, rc4Apply } from './rc4';
-import { RFC6229_ROW_COUNT, RFC6229_VECTORS } from './vectors';
+import {
+  RFC6229_PUBLISHED_KEYS,
+  RFC6229_PUBLISHED_ROWS,
+  RFC6229_ROW_COUNT,
+  RFC6229_VECTORS,
+} from './vectors';
 
 describe('RC4 against the RFC 6229 published vectors [R1]', () => {
   // One test per vector row, named by its RFC provenance, so a failure says
@@ -24,8 +29,18 @@ describe('RC4 against the RFC 6229 published vectors [R1]', () => {
     });
   }
 
-  it('covers 24 published expected-byte rows across 6 keys and 3 key sizes', () => {
+  it('covers 24 of the RFC\'s 252 rows, across 6 of its 14 keys and 3 key sizes', () => {
     expect(RFC6229_ROW_COUNT).toBe(24);
+    // How much of RFC 6229 this is. The RFC prints 14 keys and 252 rows (18
+    // stream offsets per key, out to offset 4096); this file takes the first
+    // four offsets of six keys, and the page says so rather than "every
+    // published vector".
+    expect(RFC6229_PUBLISHED_ROWS).toBe(252);
+    expect(RFC6229_PUBLISHED_KEYS).toBe(14);
+    expect(RFC6229_VECTORS).toHaveLength(6);
+    for (const v of RFC6229_VECTORS) {
+      expect(v.at.map((row) => row.offset)).toEqual([0, 16, 240, 256]);
+    }
     expect(new Set(RFC6229_VECTORS.map((v) => v.keyBits))).toEqual(new Set([40, 64, 128]));
     // Two independent key families, per the file's own note.
     expect(RFC6229_VECTORS.filter((v) => v.source.includes('section 2'))).toHaveLength(3);

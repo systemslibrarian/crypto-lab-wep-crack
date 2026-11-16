@@ -22,7 +22,8 @@ an actual implementation of **PTW** (Tews, Weinmann and Pyshkin, 2007), not a
 simulation of one.
 
 **The core lesson:** a correctly implemented cipher can still be part of a
-broken cryptographic system. RC4 here passes every published test vector. WEP
+broken cryptographic system. RC4 here reproduces every RFC 6229 row it is
+tested against — 24 of the 252 the RFC publishes, across 6 of its 14 keys. WEP
 still falls, because the system around the cipher repeats per-packet keystream,
 checks integrity with an unkeyed linear checksum, and hands the attacker the
 first three bytes of every RC4 key.
@@ -192,7 +193,8 @@ worker search, session resets, worker startup failure, and reflow at 320px.
 
 The evidence behind the numbers, all of it external to this repo:
 
-- **RC4** reproduces all **24** RFC 6229 expected-byte rows across 6 keys, 3 key
+- **RC4** reproduces all **24** RFC 6229 expected-byte rows this lab tests — of
+  the **252** the RFC publishes — across 6 of its 14 keys, 3 key
   sizes and the RFC's two independent key families (`src/rc4/vectors.ts`,
   transcribed from rfc-editor.org). Each row is driven through one
   `Rc4Keystream`, so the offsets are read as stream positions rather than

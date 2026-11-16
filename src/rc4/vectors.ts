@@ -98,3 +98,16 @@ export const RFC6229_VECTORS: readonly Rc4Vector[] = [
 
 /** Total expected-byte rows across every vector. Reported on panel 1. */
 export const RFC6229_ROW_COUNT = RFC6229_VECTORS.reduce((n, v) => n + v.at.length, 0);
+
+/**
+ * What RFC 6229 publishes in full, counted in the authoritative text: 14 keys —
+ * 40, 56, 64, 80, 128, 192 and 256 bits in each of its two key families — and
+ * 252 expected-byte rows, 18 stream offsets per key out to offset 4096.
+ *
+ * This file transcribes the first four offsets of six of those keys. The page
+ * and the README quote these two numbers beside RFC6229_ROW_COUNT so that
+ * "verified against RFC 6229" says how much of RFC 6229, rather than "every
+ * published vector" — which would be a claim about 252 rows, not 24.
+ */
+export const RFC6229_PUBLISHED_KEYS = 14;
+export const RFC6229_PUBLISHED_ROWS = 252;

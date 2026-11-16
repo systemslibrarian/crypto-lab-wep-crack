@@ -1,7 +1,7 @@
 import { emptyCounts, findConditionedKey, mergeCounts, secondByteZeroCount, wilsonInterval } from '../rc4/bias';
 import { byteBlock, card, clear, details, el, field, scroller, verdict } from './dom';
 import { drawPermutation } from './permutation';
-export const BIAS_NEGATIVE_CLAIM = 'Passing every RFC 6229 vector does not make RC4 a sound cipher: the same verified implementation shows its second byte is zero about twice as often as chance.';
+export const BIAS_NEGATIVE_CLAIM = 'Passing the RFC 6229 vectors tested here does not make RC4 a sound cipher: the same verified implementation shows its second byte is zero about twice as often as chance.';
 
 export function renderBiasCard(panel: HTMLElement): HTMLElement {
   const size=el('select',{id:'bias-size'},[12,14,16,18].map(power=>el('option',{value:String(2**power),selected:power===16,text:`2^${power} = ${(2**power).toLocaleString()} keys`})));

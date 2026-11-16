@@ -14,7 +14,12 @@ import { renderBiasCard } from './biasCard';
  */
 
 import { type KsaStep, type PrgaStep, ksa, Rc4Keystream } from '../rc4/rc4';
-import { RFC6229_ROW_COUNT, RFC6229_VECTORS } from '../rc4/vectors';
+import {
+  RFC6229_PUBLISHED_KEYS,
+  RFC6229_PUBLISHED_ROWS,
+  RFC6229_ROW_COUNT,
+  RFC6229_VECTORS,
+} from '../rc4/vectors';
 import { fromHex, toHex } from '../wep/bytes';
 import { byteBlock, card, clear, details, el, field, scroller, verdict } from './dom';
 
@@ -304,9 +309,11 @@ function renderVectorCheck(): HTMLElement {
           class: 'hint',
           id: 'rc4-vector-scope',
           text:
-            `All ${RFC6229_ROW_COUNT} published expected-byte rows across ` +
-            `${RFC6229_VECTORS.length} keys reproduce exactly. This checks implementation ` +
-            `correctness against the specification. It is not a statement that RC4 is secure.`,
+            `All ${RFC6229_ROW_COUNT} expected-byte rows tested here reproduce exactly — ` +
+            `${RFC6229_ROW_COUNT} of the ${RFC6229_PUBLISHED_ROWS} rows RFC 6229 publishes, ` +
+            `across ${RFC6229_VECTORS.length} of its ${RFC6229_PUBLISHED_KEYS} keys. This checks ` +
+            `implementation correctness against the specification. It is not a statement that ` +
+            `RC4 is secure.`,
         }),
       ]),
       details('Inspect all 24 published test-vector comparisons', [scroller('RFC 6229 vector comparison', [

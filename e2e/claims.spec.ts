@@ -118,7 +118,10 @@ test.describe('panel 1 — the RC4 claims', () => {
     await expect(scope).toContainText('not a statement that RC4 is secure');
     // The row count in that sentence must match the table it describes.
     const rows = await page.locator('#rc4-vectors tbody tr').count();
-    await expect(scope).toContainText(`All ${rows} published expected-byte rows`);
+    await expect(scope).toContainText(`All ${rows} expected-byte rows tested here reproduce exactly`);
+    // And it says how much of RFC 6229 that is: 24 of 252 rows, 6 of 14 keys.
+    await expect(scope).toContainText(`${rows} of the 252 rows RFC 6229 publishes`);
+    await expect(scope).toContainText('across 6 of its 14 keys');
     await expect(page.locator('#panel-rc4')).not.toContainText('RC4 secure');
   });
 
@@ -706,7 +709,7 @@ test('RC4 bias negative claim coexists with every verified RFC vector and measur
   await expect(page.locator('#rc4-vector-verdict')).toContainText('TEST VECTOR MATCH');
   await expect(page.locator('#rc4-vectors [data-claim="vector-row"][data-verdict="pass"]')).toHaveCount(24);
   await expect(page.locator('#bias-negative')).toBeVisible();
-  await expect(page.locator('#bias-negative')).toHaveText('Passing every RFC 6229 vector does not make RC4 a sound cipher: the same verified implementation shows its second byte is zero about twice as often as chance.');
+  await expect(page.locator('#bias-negative')).toHaveText('Passing the RFC 6229 vectors tested here does not make RC4 a sound cipher: the same verified implementation shows its second byte is zero about twice as often as chance.');
 });
 
 test('RC4 bias verdict follows the printed interval even when a deterministic fixture is uniform',async({page})=>{
