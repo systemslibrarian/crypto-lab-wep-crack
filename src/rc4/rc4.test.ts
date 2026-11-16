@@ -43,8 +43,8 @@ describe('RC4 against the RFC 6229 published vectors [R1]', () => {
     }
     expect(new Set(RFC6229_VECTORS.map((v) => v.keyBits))).toEqual(new Set([40, 64, 128]));
     // Two independent key families, per the file's own note.
-    expect(RFC6229_VECTORS.filter((v) => v.source.includes('section 2'))).toHaveLength(3);
-    expect(RFC6229_VECTORS.filter((v) => v.source.includes('section 3'))).toHaveLength(3);
+    expect(RFC6229_VECTORS.filter((v) => v.source.includes('ascending'))).toHaveLength(3);
+    expect(RFC6229_VECTORS.filter((v) => v.source.includes('nested'))).toHaveLength(3);
   });
 
   it('reads offset 256 as a stream position, not a block boundary', () => {

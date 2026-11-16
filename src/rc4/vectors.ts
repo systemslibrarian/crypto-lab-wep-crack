@@ -7,9 +7,10 @@
  * secondary listing and NOT computed by this lab's own RC4 — a vector a lab
  * generates for itself tests nothing.
  *
- * Two independent key families appear in the RFC and both are used here, so a
- * vector failure cannot be a quirk of one family: section 2's keys ascend
- * (0x0102030405...) and section 3's are the nested 0x...3222772a set.
+ * Two independent key families appear in section 2 and both are used here, so a
+ * vector failure cannot be a quirk of one family: one family's keys ascend
+ * (0x0102030405...) and the other is the nested 0x...3222772a set. Section 2 has
+ * no subsections; it prints both families as a run of key blocks.
  *
  * THE OFFSETS ARE POSITIONS IN ONE CONTINUOUS KEYSTREAM, not cipher blocks —
  * RC4 is a stream cipher and has none. Reading offset 240 means generating 240
@@ -29,7 +30,7 @@ export interface Rc4Vector {
 
 export const RFC6229_VECTORS: readonly Rc4Vector[] = [
   {
-    source: 'RFC 6229 section 2, 40-bit key',
+    source: 'RFC 6229 section 2, ascending 40-bit key',
     keyBits: 40,
     keyHex: '0102030405',
     at: [
@@ -40,7 +41,7 @@ export const RFC6229_VECTORS: readonly Rc4Vector[] = [
     ],
   },
   {
-    source: 'RFC 6229 section 2, 64-bit key',
+    source: 'RFC 6229 section 2, ascending 64-bit key',
     keyBits: 64,
     keyHex: '0102030405060708',
     at: [
@@ -51,7 +52,7 @@ export const RFC6229_VECTORS: readonly Rc4Vector[] = [
     ],
   },
   {
-    source: 'RFC 6229 section 2, 128-bit key',
+    source: 'RFC 6229 section 2, ascending 128-bit key',
     keyBits: 128,
     keyHex: '0102030405060708090a0b0c0d0e0f10',
     at: [
@@ -62,7 +63,7 @@ export const RFC6229_VECTORS: readonly Rc4Vector[] = [
     ],
   },
   {
-    source: 'RFC 6229 section 3, 40-bit key',
+    source: 'RFC 6229 section 2, nested 40-bit key',
     keyBits: 40,
     keyHex: '833222772a',
     at: [
@@ -73,7 +74,7 @@ export const RFC6229_VECTORS: readonly Rc4Vector[] = [
     ],
   },
   {
-    source: 'RFC 6229 section 3, 64-bit key',
+    source: 'RFC 6229 section 2, nested 64-bit key',
     keyBits: 64,
     keyHex: '641910833222772a',
     at: [
@@ -84,7 +85,7 @@ export const RFC6229_VECTORS: readonly Rc4Vector[] = [
     ],
   },
   {
-    source: 'RFC 6229 section 3, 128-bit key',
+    source: 'RFC 6229 section 2, nested 128-bit key',
     keyBits: 128,
     keyHex: 'ebb46227c6cc8b37641910833222772a',
     at: [
