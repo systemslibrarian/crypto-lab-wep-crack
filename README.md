@@ -105,6 +105,20 @@ chosen by this lab, so its statistics are not those of arbitrary real traffic.
    distinct-IV packets; only the controller's byte-for-byte comparison renders
    `WEP KEY RECOVERED`. A validated candidate that is not the key is an
    experiment failure, not a recovery.
+6. **Broadcast bias** — the single-byte-bias plaintext-recovery attack of
+   AlFardan et al. (USENIX 2013) [R10], run in a Web Worker. One short plaintext
+   is encrypted under many independent RC4 keys; each ciphertext position
+   inherits its keystream byte's bias, and a maximum-likelihood estimate
+   (Algorithm 4) over the per-position ciphertext tallies recovers the plaintext.
+   The recovery runs on the tallies and a measured bias table alone — never on
+   the secret. At the session counts a browser can run, the one byte it reliably
+   recovers is Z₂ (biased toward 0 at about 1/128); a session sweep shows that
+   recovery climbing from chance to certain past about 1,000 sessions. Switching
+   to **TLS mode** starts at position 37, because the first 36 keystream bytes
+   encrypt the Handshake Finished message, so the strong Z₂ bias is out of reach
+   — and recovery collapses, which is the point. The bias table is measured
+   offline over 2²⁴ keys (`src/rc4/bias-table.json`) and shipped as data; the
+   paper's own figures are at 2⁴⁴ keys and 2²⁶ sessions, far beyond this.
 
 ## When to Use It
 
@@ -139,6 +153,7 @@ directly:
   public, which makes the key schedule's statistical weaknesses exploitable.
   PTW votes on the running sums of the secret key bytes, one vote per captured
   packet, and ranks candidates until one validates.
+- **The keystream itself is biased.** Even without a repeated IV, RC4's per-position output is not uniform, so a plaintext sent across many sessions leaks through the bias — the broadcast attack in exhibit 6. The defence is not a better IV; it is not using RC4 (RFC 7465).
 
 ## Real-World Usage
 
@@ -165,7 +180,7 @@ npm run mutations    # prove the tests bite (see Build & Verify)
 
 Playwright needs its browser once: `npx playwright install chromium`.
 
-The **Start the walkthrough** link enters the five exhibits in order; **See the
+The **Start the walkthrough** link enters the six exhibits in order; **See the
 forgery** jumps straight to the accepted message modification. Previous/next
 controls and arrow-key tab navigation keep the active exhibit in the URL
 (`/#rc4`, `/#wep`, `/#collision`, `/#forge`, `/#ptw`), so an exhibit can be
@@ -319,7 +334,7 @@ dedicated worker with progress and cancellation, so the page stays responsive.
   message-modification result.
 - **[R8]** IEEE 802.11-1997, the WEP construction.
 - **[R9]** Mantin and Shamir, [A Practical Attack on Broadcast RC4](https://www.iacr.org/cryptodb/data/paper.php?pubkey=3134), FSE 2001, LNCS 2355, pp. 152–164, doi:10.1007/3-540-45473-X_13. Bibliographic record verified; no paper-specific recovery figures are quoted.
-- **[R10]** AlFardan, Bernstein, Paterson, Poettering and Schuldt, [On the Security of RC4 in TLS](https://www.usenix.org/conference/usenixsecurity13/technical-sessions/paper/alfardan), USENIX Security 2013, pp. 305–320. The authors report plaintext-recovery attacks; this card executes only the bias measurement.
+- **[R10]** AlFardan, Bernstein, Paterson, Poettering and Schuldt, [On the Security of RC4 in TLS](https://www.usenix.org/conference/usenixsecurity13/technical-sessions/paper/alfardan), USENIX Security 2013, pp. 305–320. Exhibit 6 runs their broadcast single-byte-bias attack (Algorithm 4) over a bias table measured offline; it does not attack a live TLS server.
 
 ---
 

@@ -31,7 +31,7 @@ export function renderBiasCard(panel: HTMLElement): HTMLElement {
       el('a',{href:'https://www.usenix.org/conference/usenixsecurity13/technical-sessions/paper/alfardan',text:'AlFardan and colleagues (USENIX 2013)'}),
       document.createTextNode(' later recovered plaintext from RC4 in TLS using further biases. '),
       el('a',{href:'https://www.rfc-editor.org/rfc/rfc7465.html',text:'RFC 7465'}),
-      document.createTextNode(' prohibits RC4 cipher suites. This card measures a distinguishing bias; it does not execute those broadcast or TLS plaintext-recovery attacks.'),
+      document.createTextNode(' prohibits RC4 cipher suites. This card measures a distinguishing bias; exhibit 6 runs the broadcast plaintext-recovery attack built on these biases. Neither executes the attack against a live TLS server.'),
     ]),
   ],{id:'rc4-bias'});
   function render(result:ReturnType<typeof emptyCounts>,partial:boolean,elapsed:number,goal:number) {

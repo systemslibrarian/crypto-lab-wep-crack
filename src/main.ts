@@ -17,6 +17,7 @@ import { renderPanel1 } from './ui/panel1Rc4';
 import { renderPanel2 } from './ui/panel2Wep';
 import { renderPanel3 } from './ui/panel3Collision';
 import { renderPanel5 } from './ui/panel5Ptw';
+import { renderPanel6 } from './ui/panel6Broadcast';
 import { el } from './ui/dom';
 
 interface PanelSpec {
@@ -33,6 +34,7 @@ const PANELS: readonly PanelSpec[] = [
   { id: 'collision', num: '3', tab: 'Keystream reuse', lesson: 'Find a repeated IV', render: renderPanel3 },
   { id: 'forge', num: '4', tab: 'Forge a packet', lesson: 'Break authentication', render: renderPanel4 },
   { id: 'ptw', num: '5', tab: 'Recover the key', lesson: 'Run a real PTW attack', render: renderPanel5 },
+  { id: 'broadcast', num: '6', tab: 'Broadcast bias', lesson: 'Recover repeated plaintext', render: renderPanel6 },
 ];
 
 function hero(): HTMLElement {
@@ -52,7 +54,7 @@ function hero(): HTMLElement {
         el('a', { class: 'btn btn-primary', href: '#rc4', 'data-exhibit': 'rc4', text: 'Start the walkthrough →' }),
         el('a', { class: 'btn', href: '#forge', 'data-exhibit': 'forge', text: 'See the forgery ↗' }),
       ]),
-      el('p', { class: 'hero-meta', text: 'Five hands-on exhibits · No setup · Runs locally in your browser' }),
+      el('p', { class: 'hero-meta', text: 'Six hands-on exhibits · No setup · Runs locally in your browser' }),
     ]),
     el('aside', { class: 'cl-hero-why', 'aria-label': 'Why it matters' }, [
       el('div', { class: 'packet-heading' }, [

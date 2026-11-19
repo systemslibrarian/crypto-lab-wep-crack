@@ -741,3 +741,51 @@ test('RC4 bias cancellation on hiding the panel reports actual partial samples',
   await expect(page.locator('[data-claim="bias-verdict"]')).toContainText('PARTIAL');
   await page.locator('#bias-size').selectOption('4096');await expect(page.locator('#bias-result')).toBeEmpty();
 });
+
+
+/* Panel 6 — the broadcast single-byte-bias attack (AlFardan et al., §4.1). The
+ * recovered byte is re-derived here from the table the lab ships, so the test
+ * asserts the lab's own measurement recovers the plaintext rather than trusting
+ * the panel's verdict. */
+test('broadcast attack: Z2 recovers the plaintext byte; the session sweep climbs; TLS mode cannot use Z2', async ({ page }) => {
+  await boot(page, 'dark');
+  await page.getByRole('tab', { name: /Broadcast bias/ }).click();
+
+  // A broadcast at a modest session count recovers position 2 and little else.
+  await page.locator('#panel-broadcast select').nth(1).selectOption('4096');
+  await page.getByRole('button', { name: 'Broadcast and recover' }).click();
+  await expect(page.locator('#broadcast-table')).toBeVisible({ timeout: 60_000 });
+  const row2 = page.locator('#broadcast-table tbody tr[data-position="2"]');
+  await expect(row2).toHaveAttribute('data-correct', 'true');
+  // The recovered byte equals the plaintext byte in that row (the lab prints both).
+  const cells = await row2.locator('td.mono').allInnerTexts();
+  expect(cells[0]).toBe(cells[1]); // plaintext hex == recovered hex
+  await expect(page.locator('#broadcast-verdict')).toContainText('recovered from the ciphertext biases alone');
+
+  // Success rises with sessions: 0% at few, 100% past ~1000.
+  await page.getByRole('button', { name: /Measure success vs/ }).click();
+  await expect(page.locator('#broadcast-sweep-table')).toBeVisible({ timeout: 60_000 });
+  const sweep = await page.locator('#broadcast-sweep-table tbody tr td.mono').allInnerTexts();
+  const rates = sweep.map((r) => Number(r.replace('%', '')));
+  expect(rates[0]).toBeLessThanOrEqual(25); // 64 sessions: at chance
+  expect(rates[rates.length - 1]).toBe(100); // 4096 sessions: certain
+  for (let i = 1; i < rates.length; i++) expect(rates[i]).toBeGreaterThanOrEqual(rates[i - 1]); // monotone
+
+  // TLS mode excludes position 2 (the Finished message occupies bytes 1..36),
+  // so the strong bias is unreachable and recovery collapses.
+  await page.locator('#panel-broadcast select').nth(0).selectOption('tls');
+  await page.getByRole('button', { name: 'Broadcast and recover' }).click();
+  await expect(page.locator('#broadcast-table')).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('#broadcast-table tbody tr[data-position="2"]')).toHaveCount(0);
+  await expect(page.locator('#panel-broadcast')).toContainText('TLS positions start at 37');
+  await expect(page.locator('#panel-broadcast')).toContainText('unable to exploit it');
+  const tlsSuccess = await page.locator('#broadcast-table tbody tr[data-correct="true"]').count();
+  const tlsTotal = await page.locator('#broadcast-table tbody tr').count();
+  expect(tlsSuccess).toBeLessThan(tlsTotal); // not a clean sweep; the strong byte is gone
+
+  // The bias table is labelled as measured offline, with the paper's scale.
+  await page.locator('#panel-broadcast summary', { hasText: /measured bias table/ }).click();
+  await expect(page.locator('#panel-broadcast')).toContainText('measured OFFLINE');
+  await expect(page.locator('#panel-broadcast')).toContainText('2^26 sessions');
+});
+

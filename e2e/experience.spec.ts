@@ -24,7 +24,7 @@ test('a bookmarked exhibit survives reload without saving session material', asy
   await expect(page.locator('[data-claim="ptw-state"]')).toContainText('NO RUN YET');
   await page.reload();
   await expect(page.getByRole('tab', { selected: true })).toContainText('Recover the key');
-  await expect(page.locator('#exhibit-position')).toHaveText('Exhibit 5 of 5');
+  await expect(page.locator('#exhibit-position')).toHaveText('Exhibit 5 of 6');
   expect(await page.evaluate(() => Object.keys(localStorage))).toEqual(['theme']);
 });
 
@@ -32,13 +32,13 @@ test('keyboard tabs and the walkthrough controls agree on the active exhibit', a
   await boot(page, 'dark');
   await page.getByRole('tab', { selected: true }).focus();
   await page.keyboard.press('ArrowLeft');
-  await expect(page.getByRole('tab', { selected: true })).toContainText('Recover the key');
+  await expect(page.getByRole('tab', { selected: true })).toContainText('Broadcast bias');
   await expect(page.getByRole('tab', { selected: true })).toBeFocused();
   await page.keyboard.press('Home');
   await page.getByRole('button', { name: /Next: Wrap it in WEP/ }).click();
   await expect(page).toHaveURL(/#wep$/);
   await expect(page.getByRole('tab', { selected: true })).toBeFocused();
-  await expect(page.locator('#exhibit-position')).toHaveText('Exhibit 2 of 5');
+  await expect(page.locator('#exhibit-position')).toHaveText('Exhibit 2 of 6');
   await page.getByRole('button', { name: /Previous exhibit/ }).click();
   await expect(page.getByRole('tab', { selected: true })).toContainText('RC4 itself');
   await expect(page.getByRole('button', { name: /Previous exhibit/ })).toBeDisabled();

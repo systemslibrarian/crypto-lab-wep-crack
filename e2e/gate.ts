@@ -271,7 +271,7 @@ export async function boot(page: Page, theme: 'dark'): Promise<void> {
   // ── The page really rendered ────────────────────────────────────────────
   await expect(page.locator('main')).toHaveCount(1);
   await expect(page.locator('h1')).toHaveCount(1);
-  await expect(page.locator('.tab-btn')).toHaveCount(5);
+  await expect(page.locator('.tab-btn')).toHaveCount(6);
 
   // The shared skip link points at an id that exists. axe's skip-link rule is
   // best-practice, not WCAG-tagged, so `withTags` never runs it — a skip link
@@ -295,7 +295,7 @@ export async function boot(page: Page, theme: 'dark'): Promise<void> {
   // is exactly what a scan reports as perfectly accessible.
   await expect(page.locator('#panel-rc4')).toBeVisible();
   await expect(page.locator('#panel-rc4')).not.toBeEmpty();
-  for (const id of ['wep', 'collision', 'forge', 'ptw']) {
+  for (const id of ['wep', 'collision', 'forge', 'ptw', 'broadcast']) {
     await expect(page.locator(`#panel-${id}`)).toBeHidden();
     await expect(page.locator(`#panel-${id}`)).toBeEmpty();
   }
@@ -884,6 +884,7 @@ export async function driveAllStates(page: Page, theme: string): Promise<void> {
     await openDisclosure(page, summary, scanAt);
   }
 
+
   // ── Hover and focus are states ────────────────────────────────────────
   await page.getByRole('tab', { name: /RC4 itself/ }).hover();
   await scanAt('a tab button under the pointer, repainted by :hover');
@@ -896,7 +897,24 @@ export async function driveAllStates(page: Page, theme: string): Promise<void> {
   await expect(page.locator('#ptw-packets')).toBeFocused();
   await scanAt('a select with its focus ring painted');
 
+  // ── Panel 6: the broadcast bias attack ────────────────────────────────
+  await openTab(page, /Broadcast bias/, '#panel-broadcast');
+  await scanAt('Broadcast: arrival, nothing run');
+  await page.selectOption('#panel-broadcast select >> nth=1', '16384');
+  await page.getByRole('button', { name: 'Broadcast and recover' }).click();
+  await expect(page.locator('#broadcast-table')).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('#broadcast-table tbody tr[data-position="2"]')).toHaveAttribute('data-correct', 'true');
+  await scanAt('Broadcast: position 2 recovered, the rest not');
+  await page.getByRole('button', { name: /Measure success vs/ }).click();
+  await expect(page.locator('#broadcast-sweep-table')).toBeVisible({ timeout: 60_000 });
+  await scanAt('Broadcast: the success-vs-sessions table');
+  await page.selectOption('#panel-broadcast select >> nth=0', 'tls');
+  await page.getByRole('button', { name: 'Broadcast and recover' }).click();
+  await expect(page.locator('#broadcast-table')).toBeVisible({ timeout: 60_000 });
+  await scanAt('Broadcast: TLS mode, position 2 out of scope');
+  await openDisclosure(page, /The measured bias table/, scanAt);
+
   // ── Back to panel 1 with every panel now rendered ─────────────────────
   await openTab(page, /RC4 itself/, '#panel-rc4');
-  await scanAt('panel 1 again, with all five panels rendered and four hidden');
+  await scanAt('panel 1 again, with all six panels rendered and five hidden');
 }
