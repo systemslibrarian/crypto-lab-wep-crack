@@ -80,7 +80,18 @@ export const secureKeySource: KeySource = () => crypto.getRandomValues(new Uint8
  */
 export function seededKeySource(seed: number): KeySource {
   const mask = (1n << 64n) - 1n;
-  let s = (BigInt(seed) * 0x9e3779b97f4a7c15n + 0x1n) & mask;
+  // Mix the seed through the splitmix64 finaliser BEFORE using it as state.
+  // The old init `seed * GOLDEN + 1` shared the GOLDEN increment that `next()`
+  // adds each step, so seed and seed+1 differed by exactly one `next()` step:
+  // seeding trials with consecutive integers (1000+t) produced 16 streams that
+  // were one-step shifts of ONE stream, collapsing 16 "independent" trials to
+  // ~1.5 at 16 sessions. Hashing the seed first makes consecutive seeds land at
+  // uncorrelated, effectively never-overlapping offsets. (broadcast.test.ts
+  // pins this independence.)
+  let s = BigInt(seed) & mask;
+  s = ((s ^ (s >> 30n)) * 0xbf58476d1ce4e5b9n) & mask;
+  s = ((s ^ (s >> 27n)) * 0x94d049bb133111ebn) & mask;
+  s = (s ^ (s >> 31n)) & mask;
   const next = (): bigint => {
     s = (s + 0x9e3779b97f4a7c15n) & mask;
     let z = s;

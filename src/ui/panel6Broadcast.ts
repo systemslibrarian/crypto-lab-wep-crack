@@ -34,8 +34,12 @@ const DEFAULT_SECRET = 'PASSWORD';
 const SECRET_MAX = 16;
 const SESSION_OPTIONS = [256, 1024, 4096, 16384, 65536] as const;
 const RUN_SEED = 20130101; // a fixed seed: reproducible runs (brief §tests)
-const SWEEP_SESSIONS = [64, 256, 512, 1024, 4096] as const;
-const SWEEP_TRIALS = 16;
+const SWEEP_SESSIONS = [64, 256, 1024, 4096, 16384] as const;
+// Each trial is an INDEPENDENT seeded run (seededKeySource hashes the seed, so
+// 1000+t give uncorrelated keystreams — see broadcast-core.ts and the
+// independence test). 30 trials keeps the synchronous sweep near 2s while giving
+// a stable enough rate to read the rise honestly.
+const SWEEP_TRIALS = 30;
 
 const asBytes = (s: string): Uint8Array => new Uint8Array(Array.from(s, (c) => c.charCodeAt(0) & 0xff));
 const printable = (b: number): string => (b >= 0x20 && b < 0x7f ? String.fromCharCode(b) : '·');
@@ -207,18 +211,35 @@ export function renderPanel6(host: HTMLElement): void {
     // Defer so the status paints before the (fast) sweep.
     setTimeout(() => {
       const secret = new Uint8Array([0x6d]); // one byte at position 2
-      const rows = SWEEP_SESSIONS.map((s) => {
+      // Each trial is an independent seeded run; count successes per session size.
+      const results = SWEEP_SESSIONS.map((s) => {
         let ok = 0;
         for (let t = 0; t < SWEEP_TRIALS; t++) {
           if (runBroadcast(secret, [2], s, seededKeySource(1000 + t)).successCount === 1) ok++;
         }
-        const rate = Math.round((ok / SWEEP_TRIALS) * 100);
-        return el('tr', { 'data-sessions': String(s) }, [
-          el('th', { scope: 'row', text: s.toLocaleString() }),
-          el('td', { class: 'mono', text: `${rate}%` }),
-          el('td', {}, [el('div', { class: 'bar', style: `--w:${rate}%` }, [el('span', { class: 'bar-fill', style: `width:${rate}%` })])]),
-        ]);
+        return { sessions: s, ok, rate: Math.round((ok / SWEEP_TRIALS) * 100) };
       });
+      const rows = results.map(({ sessions, rate }) =>
+        el('tr', { 'data-sessions': String(sessions) }, [
+          el('th', { scope: 'row', text: sessions.toLocaleString() }),
+          el('td', { class: 'mono', 'data-rate': String(rate), text: `${rate}%` }),
+          el('td', {}, [el('div', { class: 'bar', style: `--w:${rate}%` }, [el('span', { class: 'bar-fill', style: `width:${rate}%` })])]),
+        ]),
+      );
+      // The claim is DERIVED from the table above, not asserted, so it can never
+      // contradict the measured rates. "Recovers every time" is attached to the
+      // session count where the data actually shows it, not to a fixed threshold.
+      const at = (n: number) => results.find((r) => r.sessions === n);
+      const top = results[results.length - 1];
+      const r1k = at(1024);
+      const r4k = at(4096);
+      const reliable = results.find((r) => r.rate === 100);
+      const claim =
+        `Recovery climbs with the number of sessions and is not certain at a thousand: over ${SWEEP_TRIALS} independent trials, position 2 is recovered ` +
+        `${r1k ? `${r1k.ok} of ${SWEEP_TRIALS} times (${r1k.rate}%) at 1,024 sessions` : ''}` +
+        `${r4k ? ` and ${r4k.rate}% at 4,096` : ''}` +
+        `${reliable ? `, and only at ${reliable.sessions.toLocaleString()} sessions does it recover every time (100%)` : `, and does not reach certainty within ${top.sessions.toLocaleString()} sessions here`}. ` +
+        `More sessions also recover more bytes — the paper's own curves, at 2^24–2^26 sessions, recover the first several dozen bytes of the plaintext.`;
       clear(sweepOut);
       sweepOut.append(
         scroller('Recovery rate for position 2 by session count', [
@@ -228,7 +249,7 @@ export function renderPanel6(host: HTMLElement): void {
             el('tbody', {}, rows),
           ]),
         ]),
-        note('accent', [`With few sessions the bias cannot be seen and recovery is at chance; past about 1,000 sessions position 2 recovers every time. More sessions, more recovered bytes — the paper's own curves, at 2^24–2^26 sessions, reach the first 80 bytes.`]),
+        el('div', { class: 'note note-accent', 'data-sweep-claim': '' }, [claim]),
       );
       sweepButton.disabled = false;
     }, 0);

@@ -92,4 +92,31 @@ describe('a broadcast run', () => {
     expect(a[0]).toBe(b[0]);
     expect(a[0]).toBe(0x6d);
   });
+
+  it('consecutive seeds give INDEPENDENT keystreams (not one stream read at N offsets)', () => {
+    // Regression guard. The old seed init `seed * GOLDEN + 1` shared the GOLDEN
+    // increment that next() adds each step, so seededKeySource(s) and (s+1) were
+    // exactly one splitmix step apart: the sweep's 16 "independent" trials were
+    // one stream read at 16 offsets, which forged a 100% ("certain") recovery
+    // rate. With the seed hashed into the state, every trial is independent.
+    const TRIALS = 16;
+    const DRAWS = 8; // keys pulled per trial
+    const halves: string[] = [];
+    const firstKeys: string[] = [];
+    for (let t = 0; t < TRIALS; t++) {
+      const src = seededKeySource(1000 + t); // the sweep's own seeds
+      for (let d = 0; d < DRAWS; d++) {
+        const k = src();
+        if (d === 0) firstKeys.push(Array.from(k).join(','));
+        halves.push(Array.from(k.slice(0, 8)).join(','));
+        halves.push(Array.from(k.slice(8, 16)).join(','));
+      }
+    }
+    // Every key-half drawn across all trials is distinct — full independence.
+    // Under the old bug this collapsed to ~39 of 256 (streams overlapped by a
+    // one-step shift), so this assertion fails on the defect and passes on the fix.
+    expect(new Set(halves).size).toBe(halves.length);
+    // And each trial starts somewhere different.
+    expect(new Set(firstKeys).size).toBe(TRIALS);
+  });
 });

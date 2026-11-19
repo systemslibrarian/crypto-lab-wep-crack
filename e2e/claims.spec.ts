@@ -762,14 +762,31 @@ test('broadcast attack: Z2 recovers the plaintext byte; the session sweep climbs
   expect(cells[0]).toBe(cells[1]); // plaintext hex == recovered hex
   await expect(page.locator('#broadcast-verdict')).toContainText('recovered from the ciphertext biases alone');
 
-  // Success rises with sessions: 0% at few, 100% past ~1000.
+  // Success RISES with sessions (monotone) and starts near chance. We assert the
+  // SHAPE, never a fixed "certain past N sessions" threshold — the trials are
+  // independent (unit test), so the rate is a real measurement, not a forced 100%.
   await page.getByRole('button', { name: /Measure success vs/ }).click();
-  await expect(page.locator('#broadcast-sweep-table')).toBeVisible({ timeout: 60_000 });
-  const sweep = await page.locator('#broadcast-sweep-table tbody tr td.mono').allInnerTexts();
-  const rates = sweep.map((r) => Number(r.replace('%', '')));
-  expect(rates[0]).toBeLessThanOrEqual(25); // 64 sessions: at chance
-  expect(rates[rates.length - 1]).toBe(100); // 4096 sessions: certain
-  for (let i = 1; i < rates.length; i++) expect(rates[i]).toBeGreaterThanOrEqual(rates[i - 1]); // monotone
+  await expect(page.locator('#broadcast-sweep-table')).toBeVisible({ timeout: 90_000 });
+  const sweepRates = await page.locator('#broadcast-sweep-table tbody tr td.mono').evaluateAll((tds) =>
+    tds.map((td) => ({ rate: Number((td.textContent ?? '').replace('%', '')), sessions: Number((td.closest('tr') as HTMLElement).dataset.sessions) })),
+  );
+  const rates = sweepRates.map((r) => r.rate);
+  expect(rates[0]).toBeLessThanOrEqual(25); // fewest sessions: near chance
+  for (let i = 1; i < rates.length; i++) expect(rates[i]).toBeGreaterThanOrEqual(rates[i - 1]); // monotone climb
+
+  // The displayed claim is DERIVED from this table — it must not contradict it.
+  const claimText = (await page.locator('[data-sweep-claim]').innerText()).replace(/\s+/g, ' ');
+  // It never asserts certainty at a thousand sessions.
+  expect(claimText).not.toMatch(/recovers? every time.{0,40}\b1,?0{3}\b/i);
+  // Any session count the claim calls 100%/"every time" is actually 100% in the table.
+  const everyTime = claimText.match(/(\d[\d,]*) sessions does it recover every time/);
+  if (everyTime) {
+    const n = Number(everyTime[1].replace(/,/g, ''));
+    expect(sweepRates.find((r) => r.sessions === n)?.rate).toBe(100);
+  }
+  // The percentage the claim states for 1,024 sessions matches the 1,024 row.
+  const at1k = claimText.match(/\((\d+)%\) at 1,024 sessions/);
+  if (at1k) expect(sweepRates.find((r) => r.sessions === 1024)?.rate).toBe(Number(at1k[1]));
 
   // TLS mode excludes position 2 (the Finished message occupies bytes 1..36),
   // so the strong bias is unreachable and recovery collapses.
