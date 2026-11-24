@@ -111,6 +111,22 @@ test.describe('panel 1 — the RC4 claims', () => {
     await expect(page.locator('[data-claim="vector-summary"]')).toContainText('TEST VECTOR MATCH');
   });
 
+  test('one differing reference row changes the verdict and the reported match count', async ({ page }) => {
+    // Change one expected byte in this browser's copy of the published fixture.
+    const firstRow = 'b2396305f03dc027ccc3524a0a1118a8';
+    await page.route('**/assets/index-*.js', async route => {
+      const response = await route.fetch();
+      const source = await response.text();
+      expect(source).toContain(firstRow);
+      await route.fulfill({ response, body: source.replace(firstRow, '00' + firstRow.slice(2)) });
+    });
+    await boot(page, 'dark');
+    await expect(page.locator('[data-claim="vector-row"][data-verdict="fail"]')).toHaveCount(1);
+    await expect(page.locator('[data-claim="vector-summary"]')).toContainText('VECTOR MISMATCH');
+    await expect(page.locator('#rc4-vector-scope')).toContainText('23 of 24 tested rows match');
+    await expect(page.locator('#rc4-vector-scope')).not.toContainText('reproduce exactly');
+  });
+
   test('the vector pass is scoped to correctness and never claims RC4 is secure', async ({ page }) => {
     await boot(page, 'dark');
     const scope = page.locator('#rc4-vector-scope');
@@ -227,6 +243,14 @@ test.describe('panel 2 — the construction claims', () => {
     const reject = page.locator('[data-claim="wrapper-reject"]');
     await expect(reject).toContainText('REJECTED BY THE WEP WRAPPER');
     await expect(page.locator('#wep-input-error')).toContainText('the restriction is WEP’s, not the cipher’s');
+  });
+
+  test('the empty key clears the old frame and the selected profile explains its required length', async ({ page }) => {
+    await page.locator('#wep-key').fill('');
+    await expect(page.locator('#wep-out')).toBeEmpty();
+    await expect(page.locator('#wep-input-error')).toContainText('also requires a nonempty key');
+    await page.locator('#wep-key').fill('0102030405');
+    await expect(page.locator('#wep-input-error')).toContainText('104-bit WEP profile requires a 13-byte shared key');
   });
 
   test('changing an input retires the previous output', async ({ page }) => {

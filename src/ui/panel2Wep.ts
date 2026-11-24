@@ -16,7 +16,6 @@ import {
   type WepKeyBits,
 } from '../wep/types';
 import {
-  SUPPORTED_KEY_PROFILE,
   icvFor,
   parseBody,
   perPacketKey,
@@ -86,9 +85,11 @@ export function renderPanel2(host: HTMLElement): void {
           verdict('fail', 'REJECTED BY THE WEP WRAPPER', { 'data-claim': 'wrapper-reject' }),
           el('p', {
             text:
-              `WEP takes a shared key of ${SUPPORTED_KEY_PROFILE}. This one is ` +
-              `${sharedKey.length} bytes, so the wrapper refuses it. RC4 itself would ` +
-              `accept this length quite happily — the restriction is WEP’s, not the cipher’s.`,
+              `The selected ${bits}-bit WEP profile requires a ${expected}-byte shared key. ` +
+              `You entered ${sharedKey.length} bytes. ` +
+              (sharedKey.length === 0
+                ? 'The RC4 key field in panel 1 also requires a nonempty key.'
+                : 'For this key length, the restriction is WEP’s, not the cipher’s.'),
           }),
         ])
       );

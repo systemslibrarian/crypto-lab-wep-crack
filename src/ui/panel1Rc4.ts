@@ -8,8 +8,8 @@ import { renderBiasCard } from './biasCard';
  * frame is executed state: the trace comes back from `ksa()`/`Rc4Keystream`
  * rather than from an animation script.
  *
- * The vector comparison computes both sides and shows them — it never asserts a
- * match in prose. And a pass reads TEST VECTOR MATCH, scoped to implementation
+ * The vector comparison shows the published bytes alongside the calculated bytes.
+ * A pass reads TEST VECTOR MATCH, scoped to implementation
  * correctness, because "RC4 secure" is the thing it does not mean.
  */
 
@@ -266,7 +266,7 @@ export function renderPanel1(host: HTMLElement): void {
 
 function renderVectorCheck(): HTMLElement {
   const rows: HTMLElement[] = [];
-  let allMatch = true;
+  let matchingRows = 0;
 
   for (const v of RFC6229_VECTORS) {
     const key = fromHex(v.keyHex);
@@ -275,7 +275,7 @@ function renderVectorCheck(): HTMLElement {
       stream.skip(row.offset - stream.offset);
       const computed = toHex(stream.next(16));
       const match = computed === row.hex;
-      if (!match) allMatch = false;
+      if (match) matchingRows++;
       rows.push(
         el('tr', { class: match ? '' : 'is-leader' }, [
           el('td', { text: `${v.keyBits}-bit` }),
@@ -292,12 +292,17 @@ function renderVectorCheck(): HTMLElement {
     }
   }
 
+  const allMatch = rows.length > 0 && matchingRows === rows.length;
+  const outcome = allMatch
+    ? `All ${rows.length} expected-byte rows tested here reproduce exactly`
+    : `${matchingRows} of ${rows.length} tested rows match the published bytes`;
+
   return card(
     [
       el('h3', { text: 'Compare against the published vectors' }),
       el('p', {
         text:
-          'Both sides are computed and shown: the expected bytes come from RFC 6229 and ' +
+          'The expected bytes come from RFC 6229 and ' +
           'the computed bytes come from the cipher you just stepped through. The offsets ' +
           'are positions in one continuous keystream, not block boundaries — RC4 has no blocks.',
       }),
@@ -309,7 +314,7 @@ function renderVectorCheck(): HTMLElement {
           class: 'hint',
           id: 'rc4-vector-scope',
           text:
-            `All ${RFC6229_ROW_COUNT} expected-byte rows tested here reproduce exactly — ` +
+            `${outcome}. This table covers ` +
             `${RFC6229_ROW_COUNT} of the ${RFC6229_PUBLISHED_ROWS} rows RFC 6229 publishes, ` +
             `across ${RFC6229_VECTORS.length} of its ${RFC6229_PUBLISHED_KEYS} keys. This checks ` +
             `implementation correctness against the specification. It is not a statement that ` +
