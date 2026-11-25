@@ -111,9 +111,9 @@ chosen by this lab, so its statistics are not those of arbitrary real traffic.
    inherits its keystream byte's bias, and a maximum-likelihood estimate
    (Algorithm 4) over the per-position ciphertext tallies recovers the plaintext.
    The recovery runs on the tallies and a measured bias table alone — never on
-   the secret. At the session counts a browser can run, the one byte it reliably
-   recovers is Z₂ (biased toward 0 at about 1/128); a session sweep shows that
-   recovery climbing from chance to certain past about 1,000 sessions. Switching
+   the secret. The session sweep reports how often the second plaintext byte was
+   correct among the trials at each sample size. Even when every trial in a row
+   succeeds, a fresh trial can still fail. Exhibit 5 measures full-key recovery separately. Switching
    to **TLS mode** starts at position 37, because the first 36 keystream bytes
    encrypt the Handshake Finished message, so the strong Z₂ bias is out of reach
    — and recovery collapses, which is the point. The bias table is measured
